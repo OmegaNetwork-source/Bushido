@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bushido</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+      background-color: #f8f1e5;
+      color: #3a2f23;
+      background-attachment: fixed;
+      line-height: 1.6;
+    }
+
+    header {
+      text-align: center;
+      padding: 60px 20px 30px;
+      border-top: 40px solid #532e21;
+      border-bottom: 20px solid #532e21;
+      color: #3a2f23;
+    }
+
+    header h1 {
+      font-size: 3.5em;
+      letter-spacing: 2px;
+      font-family: 'Cinzel Decorative', serif;
+    }
+
+    .kanji {
+      font-size: 4em;
+      margin-top: 10px;
+      font-family: 'Georgia', serif;
+    }
+
+    header p {
+      font-size: 1.4em;
+      font-weight: bold;
+      font-family: 'Cinzel Decorative', serif;
+      margin-top: 10px;
+    }
+
+    nav {
+      background-color: #8c5e3c;
+      display: flex;
+      justify-content: center;
+      padding: 15px 0;
+      border-top: 3px solid #3a2f23;
+      border-bottom: 3px solid #3a2f23;
+    }
+
+    nav a {
+      color: #fff0d8;
+      text-decoration: none;
+      margin: 0 20px;
+      font-weight: bold;
+      font-family: 'Georgia', serif;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: #fbc88d;
+    }
+
+    section {
+      padding: 60px 40px;
+      max-width: 900px;
+      margin: auto;
+    }
+
+    section h2 {
+      text-align: center;
+      font-size: 2em;
+      font-family: 'Cinzel Decorative', serif;
+      margin-bottom: 20px;
+      position: relative;
+      padding-bottom: 20px;
+    }
+
+    section h2::after {
+      content: url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Katana_icon.svg/64px-Katana_icon.svg.png');
+      display: block;
+      position: absolute;
+      bottom: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 64px;
+      height: auto;
+      opacity: 0.9;
+    }
+
+    .virtues h2 {
+      font-size: 2.2em;
+    }
+
+    .virtue-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 30px;
+    }
+
+    .virtue {
+      text-align: center;
+      padding: 10px;
+    }
+
+    .virtue h3 {
+      font-size: 2em;
+      color: #8c2d19;
+      margin-bottom: 10px;
+    }
+
+    .virtue p {
+      font-size: 0.95em;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      background: #532e21;
+      font-size: 0.9em;
+      color: #f8f1e5;
+      font-family: 'Georgia', serif;
+    }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>Bushido</h1>
+    <div class="kanji">武士道</div>
+    <p>The Way of the Warrior</p>
+  </header>
+
+  <nav>
+    <a href="#about">About</a>
+    <a href="#manga">Manga</a>
+    <a href="#fire">Fire Bushidos</a>
+    <a href="#water">Water Bushidos</a>
+    <a href="#virtues">Virtues</a>
+  </nav>
+
+  <section id="about">
+    <h2>About</h2>
+    <p>In a world forged by honor and flame, 1,500 warriors of the Fire Clan marched across the SUI Network to confront their icy equals. Awaiting them: 1,500 elite Water Clan samurais, cloaked in mist and resolve. The battlefield echoed with the clash of elemental steel — fire roared against the tide, and vapor rose with every blade. It was a battle not of dominance, but of ancient balance, where each warrior embodied a virtue of Bushido. This was not just war — it was ceremony, sacrifice, and legacy written across a digital realm.</p>
+  </section>
+
+  <section id="fire">
+    <h2>Fire Bushidos</h2>
+    <p>The elite 1,500 samurais of the Fire Clan are forged in volcanic flame and unrelenting spirit. Masters of aggression and raw strength, they train beneath blazing suns and battle with the fury of a thousand ancestors. Their loyalty is as fierce as their strikes, and their code is scorched into their souls. Fire Bushidos do not waver — they erupt.</p>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.postimg.cc/P50z5f6k/fire.png" alt="Fire Bushido Character" style="max-width: 100%; height: auto; border-radius: 8px;">
+    </div>
+  </section>
+
+  <section id="water">
+    <h2>Water Bushidos</h2>
+    <p>Water Bushidos are 1,500 elite samurais born in silence, trained in stillness, and unleashed like crashing waves. Each step they take is calculated, each strike a reflection of patience refined. They do not shout; they flow. And when battle calls, they rise like the tide — enveloping, enduring, and ultimately overwhelming. Their calm is their power.</p>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.postimg.cc/VvFDSyJW/water.png" alt="Water Bushido Character" style="max-width: 100%; height: auto; border-radius: 8px;">
+    </div>
+  </section>
+
+  <section id="manga">
+    <h2>Manga</h2>
+    <p>Experience the legend of Bushido through vivid ink and panel. Our manga series dives deep into the elemental war between Fire and Water Bushidos, chronicling the path of chosen warriors, forbidden alliances, and the sacred virtues that bind them all. With every page, honor is tested, loyalty burns, and destiny flows like water. Stay tuned — the epic unfolds one chapter at a time.</p>
+    <div style="text-align:center; margin-top:20px;">
+      <img src="https://i.postimg.cc/fTt12ySG/manga.png" alt="Bushido Manga Page" style="max-width: 100%; height: auto; border-radius: 8px;">
+    </div>
+  </section>
+
+  <section id="virtues" class="virtues">
+    <h2>The Seven Virtues of Bushido</h2>
+    <div class="virtue-list">
+      <div class="virtue">
+        <h3>義</h3>
+        <p><strong>Gi</strong> — Integrity</p>
+      </div>
+      <div class="virtue">
+        <h3>勇</h3>
+        <p><strong>Yuuki</strong> — Heroic Courage</p>
+      </div>
+      <div class="virtue">
+        <h3>仁</h3>
+        <p><strong>Jin</strong> — Compassion</p>
+      </div>
+      <div class="virtue">
+        <h3>礼</h3>
+        <p><strong>Rei</strong> — Respect</p>
+      </div>
+      <div class="virtue">
+        <h3>誠</h3>
+        <p><strong>Makoto</strong> — Honesty and Sincerity</p>
+      </div>
+      <div class="virtue">
+        <h3>名誉</h3>
+        <p><strong>Meiyo</strong> — Honor</p>
+      </div>
+      <div class="virtue">
+        <h3>忠義</h3>
+        <p><strong>Chuugi</strong> — Duty and Loyalty</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    &copy; 2025 Bushido. All rights reserved.
+    <div style="text-align: center; margin-top: 20px;">
+      <a href="https://x.com/bushid0warrior?s=21&t=xVCZdrDlia_eMGUlcbqvGQ" target="_blank" rel="noopener noreferrer">
+        <img src="https://abs.twimg.com/icons/apple-touch-icon-192x192.png" alt="X (formerly Twitter)" style="width: 32px; height: 32px;">
+      </a>
+    </div>
+  </footer>
+</body>
+</html>
