@@ -80,20 +80,7 @@
       font-size: 2em;
       font-family: 'Cinzel Decorative', serif;
       margin-bottom: 20px;
-      position: relative;
       padding-bottom: 20px;
-    }
-
-    section h2::after {
-      content: url('https://upload.wikimedia.org/wikipedia/commons/thumb/3/3c/Katana_icon.svg/64px-Katana_icon.svg.png');
-      display: block;
-      position: absolute;
-      bottom: -25px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 64px;
-      height: auto;
-      opacity: 0.9;
     }
 
     .virtues h2 {
@@ -128,6 +115,27 @@
       font-size: 0.9em;
       color: #f8f1e5;
       font-family: 'Georgia', serif;
+    }
+      @media screen and (max-width: 768px) {
+      header h1 {
+        font-size: 2em;
+      }
+      .kanji {
+        font-size: 2.5em;
+      }
+      header p {
+        font-size: 1em;
+      }
+      nav {
+        flex-direction: column;
+        padding: 10px 0;
+      }
+      nav a {
+        margin: 8px 0;
+      }
+      section {
+        padding: 30px 20px;
+      }
     }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap" rel="stylesheet">
@@ -220,3 +228,4 @@
   </footer>
 </body>
 </html>
+
