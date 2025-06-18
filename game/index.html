@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bushido Duel — Final Polished</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background: #f0e7d4;
+      margin: 0;
+      padding: 0;
+    }
+    #container {
+      max-width: 720px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 20px;
+      border: 4px solid #3a2f23;
+      border-radius: 10px;
+    }
+    h2, h3 { text-align: center; }
+    input[type="text"] {
+      padding: 10px;
+      font-size: 1em;
+      width: 250px;
+    }
+    .btn {
+      padding: 10px 20px;
+      font-size: 1em;
+      margin: 10px;
+      cursor: pointer;
+      border: 2px solid #3a2f23;
+      background: #fff;
+    }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+    .stats {
+      width: 48%;
+      background: #f5f5f5;
+      padding: 10px;
+      border: 2px solid #3a2f23;
+      border-radius: 6px;
+    }
+    .sprites {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      margin: 20px 0;
+    }
+    .sprites img { width: 100px; }
+    .hp-bar {
+      height: 12px;
+      overflow: hidden;
+      max-width: 100%;
+      background: #ccc;
+      border: 1px solid #000;
+      margin: 5px 0;
+    }
+    .fill { height: 100%; }
+    #log-box {
+  font-weight: bold;
+      background: #eee;
+      border: 1px solid #333;
+      height: 100px;
+      overflow-y: auto;
+      padding: 10px;
+      margin: 20px 0;
+    }
+    #actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    #player-info {
+      text-align: center;
+      font-size: 0.95em;
+    }
+    #xp-bar {
+      height: 15px;
+      background: #ccc;
+      width: 100%;
+      margin-top: 5px;
+    }
+    #xp-fill {
+      height: 100%;
+      background: #2ecc71;
+      width: 0%;
+    }
+    #leaderboard {
+      border-top: 2px solid #3a2f23;
+      padding-top: 10px;
+    }
+    #leaderboard ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      text-align: center;
+    }
+  </style>
+
+  <style>
+    .hp-hit {
+      animation: flashRed 0.3s ease;
+    }
+
+    @keyframes flashRed {
+      0% { background-color: #f00; }
+      100% { background-color: inherit; }
+    }
+
+    .fx-flame, .fx-water {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 80px;
+      height: 80px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0.8;
+      animation: fxFade 0.5s ease-out forwards;
+    }
+
+    .fx-flame {
+      background: url('https://i.imgur.com/E1H0kQ1.png') no-repeat center center;
+      background-size: contain;
+    }
+
+    .fx-water {
+      background: url('https://i.imgur.com/xapQpVE.png') no-repeat center center;
+      background-size: contain;
+    }
+
+    @keyframes fxFade {
+      0% { transform: scale(0.5) translate(-50%, -50%); opacity: 1; }
+      100% { transform: scale(1.5) translate(-50%, -50%); opacity: 0; }
+    }
+  </style>
+
+</head>
+<body>
+<div id="container">
+  <h2>Bushido Clan Duel</h2>
+  <div id="setup">
+    <p>Enter your name:</p>
+    <input id="username" placeholder="e.g. Kazuki">
+    <p>Choose your clan:</p>
+    <button class="btn" onclick="start('fire')">🔥 Fire Bushido</button>
+    <button class="btn" onclick="start('water')">💧 Water Bushido</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="top-bar">
+      <div class="stats">
+        <strong id="player-name"></strong> (Lv <span id="player-level">1</span>)<br>
+        <div class="hp-bar"><div id="player-hp" class="fill" style="background:#c0392b;width:100%;"></div></div>
+        <span id="player-hp-text">HP: 100</span>
+        <div id="xp-bar"><div id="xp-fill"></div></div>
+      </div>
+      <div class="stats">
+        <strong id="enemy-name"></strong> (Lv 1)<br>
+        <div class="hp-bar"><div id="enemy-hp" class="fill" style="background:#2980b9;width:100%;"></div></div>
+        <span id="enemy-hp-text">HP: 100</span>
+        <div id="enemy-xp-bar" style="height:15px;background:#ccc;margin-top:5px;"><div id="enemy-xp-fill" style="height:100%;background:#999;width:0%;"></div></div>
+      </div>
+    </div>
+
+    <div class="sprites">
+      <img id="player-sprite">
+      <img id="enemy-sprite">
+    </div>
+
+    <div id="log-box">Prepare for battle...</div>
+
+    <div id="actions">
+      <button class="btn" id="kick-nuts" style="grid-column: span 2;" disabled title="Unlocks at level 10">🥋 Kick ’Em in the Nuts (Lv 10)</button>
+      <button class="btn" onclick="playerAct('slash')">🗡 Slash</button>
+      <button class="btn" onclick="playerAct('heal')">💧 Heal</button>
+      <button class="btn" onclick="playerAct('block')">🛡 Block</button>
+      <button class="btn" id="special-move" onclick="playerAct('kick')">🔥 Flame Kick</button>
+    </div>
+
+    <div id="replay" style="text-align:center; display:none;">
+      <button class="btn" onclick="restart()">🔁 Duel Again</button>
+    </div>
+
+    <div id="player-info">
+      Warrior: <span id="player-name-footer"></span> | Level: <span id="player-level-footer">1</span>
+    </div>
+
+    <div id="leaderboard">
+      <h3>🌐 Leaderboard</h3>
+      <ul id="leaderboard-list"></ul>
+    </div>
+  </div>
+</div>
+
+<script>
+  let player = {}, enemy = {}, block = false;
+
+  function start(clan) {
+    const name = document.getElementById("username").value.trim();
+    if (!name) return alert("Enter your name.");
+    player.name = name;
+    player.clan = clan;
+    player.hp = 100;
+    player.xp = parseInt(localStorage.getItem(name + "_xp") || "0");
+    player.level = 1 + Math.floor(player.xp / 100);
+
+    enemy.clan = clan === "fire" ? "water" : "fire";
+    enemy.hp = 100;
+    enemy.name = enemy.clan === "fire" ? "🔥 Fire Bushido" : "💧 Water Bushido";
+
+    document.getElementById("setup").style.display = "none";
+    document.getElementById("game").style.display = "block";
+
+    const specialMove = document.getElementById("special-move");
+    specialMove.textContent = clan === "fire" ? "🔥 Flame Kick" : "💧 Water Kick";
+
+    document.getElementById("player-name").textContent = (clan === "fire" ? "🔥" : "💧") + " " + player.name;
+    document.getElementById("player-level").textContent = player.level;
+    document.getElementById("player-name-footer").textContent = player.name;
+    document.getElementById("player-level-footer").textContent = player.level;
+    document.getElementById("enemy-name").textContent = enemy.name;
+
+    document.getElementById("player-sprite").src = clan === "fire" ? "https://i.postimg.cc/P50z5f6k/fire.png" : "https://i.postimg.cc/VvFDSyJW/water.png";
+    document.getElementById("enemy-sprite").src = enemy.clan === "fire" ? "https://i.postimg.cc/P50z5f6k/fire.png" : "https://i.postimg.cc/VvFDSyJW/water.png";
+
+    updateBars();
+    updateLeaderboard();
+  }
+
+  function updateBars() {
+    document.getElementById("player-hp").style.width = (player.hp * 10) + "%";
+    document.getElementById("enemy-hp").style.width = (enemy.hp * 10) + "%";
+    document.getElementById("player-hp-text").textContent = "HP: " + player.hp;
+    document.getElementById("enemy-hp-text").textContent = "HP: " + enemy.hp;
+    document.getElementById("xp-fill").style.width = ((player.xp % 100) * 1) + "%";
+  }
+
+  function log(msg) {
+    document.getElementById("log-box").innerHTML = "<p>" + msg + "</p>" + document.getElementById("log-box").innerHTML;
+  }
+
+  function disableButtons(disable) {
+    document.querySelectorAll("#actions button").forEach(btn => btn.disabled = disable);
+  }
+
+  function playerAct(move) {
+    if (player.hp <= 0 || enemy.hp <= 0) return;
+    disableButtons(true);
+    let msg = "", dmg = 0;
+    block = false;
+
+    if (move === "slash") {
+      dmg = player.clan === "fire" && Math.random() < 0.2 ? 5 : 3;
+      enemy.hp = Math.max(0, enemy.hp - dmg);
+      msg = "You used Slash for " + dmg + " damage.";
+    } else if (move === "heal") {
+      const heal = player.clan === "water" ? 3 : 2;
+      player.hp = Math.min(10, player.hp + heal);
+      msg = "You healed " + heal + " HP.";
+    } else if (move === "block") {
+      block = true;
+      msg = "You prepare to block.";
+    } else if (move === "kick") {
+      dmg = 2 + Math.floor(Math.random() * 3);
+      enemy.hp = Math.max(0, enemy.hp - dmg);
+      msg = (player.clan === "fire" ? "Flame" : "Water") + " Kick hits for " + dmg + " damage.";
+    }
+
+    updateBars();
+    log(msg);
+
+    if (enemy.hp <= 0) {
+      player.xp += 5;
+      localStorage.setItem(player.name + "_xp", player.xp);
+      log("🏆 Victory! +5 XP.");
+      updateBars();
+      updateLeaderboard();
+      document.getElementById("player-level").textContent = player.level;
+      document.getElementById("player-level-footer").textContent = player.level;
+
+      document.getElementById("replay").style.display = "block";
+    } else {
+      setTimeout(enemyTurn, 1000);
+    }
+  }
+
+  function enemyTurn() {
+    if (enemy.hp <= 0 || player.hp <= 0) return;
+    let move = ["strike", "focus", "strike"][Math.floor(Math.random() * 3)];
+    let msg = "";
+
+    if (move === "strike") {
+      let dmg = block ? 0 : 2;
+      player.hp = Math.max(0, player.hp - dmg);
+      msg = block ? "Enemy attacked but you blocked it!" : "Enemy strikes for " + dmg + " damage!";
+    } else if (move === "focus") {
+      const heal = enemy.clan === "water" ? 3 : 2;
+      enemy.hp = Math.min(10, enemy.hp + heal);
+      msg = "Enemy heals " + heal + " HP.";
+    }
+
+    updateBars();
+    log(msg);
+    if (player.hp <= 0) {
+      log("💀 Defeat. Train harder.");
+      document.getElementById("replay").style.display = "block";
+    } else {
+      disableButtons(false);
+    }
+  }
+
+  function restart() {
+    player.hp = 100;
+    enemy.hp = 100;
+    block = false;
+    document.getElementById("replay").style.display = "none";
+    document.getElementById("log-box").innerHTML = "Prepare for battle...";
+    updateBars();
+    disableButtons(false);
+  }
+
+  function updateLeaderboard() {
+    const users = Object.keys(localStorage).filter(k => k.endsWith("_xp"));
+    const sorted = users.map(k => {
+      return { name: k.replace("_xp", ""), xp: parseInt(localStorage.getItem(k)) };
+    }).sort((a,b) => b.xp - a.xp);
+
+    const list = document.getElementById("leaderboard-list");
+    list.innerHTML = sorted.map(u => `<li>${u.name} — Level ${1 + Math.floor(u.xp / 10)} | XP: ${u.xp}</li>`).join("");
+  }
+</script>
+
+<div style="text-align:center; margin-top:10px;">
+  <button class="btn" id="connect-btn" onclick="connectWallet()">🔗 Connect Wallet</button>
+  <p id="wallet-display"></p>
+</div>
+
+<script>
+  let suiAddress = "";
+
+  async function connectWallet() {
+    if (!window.suiWallet) {
+      alert("No SUI wallet found. Please install Suiet or another compatible wallet.");
+      return;
+    }
+
+    try {
+      const accounts = await window.suiWallet.requestAccounts();
+      suiAddress = accounts[0];
+      document.getElementById("wallet-display").textContent = "Wallet: " + shorten(suiAddress);
+      document.getElementById("connect-btn").style.display = "none";
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+      alert("Wallet connection failed.");
+    }
+  }
+
+  function shorten(addr) {
+    return addr.slice(0, 6) + "..." + addr.slice(-4);
+  }
+
+  function storeXP(name, xp) {
+    if (!suiAddress) return;
+    localStorage.setItem(suiAddress + "_name", name);
+    localStorage.setItem(suiAddress + "_xp", xp);
+  }
+
+  function getLeaderboard() {
+    return Object.keys(localStorage)
+      .filter(k => k.endsWith("_xp"))
+      .map(k => {
+        const addr = k.replace("_xp", "");
+        const xp = parseInt(localStorage[k] || "0");
+        const name = localStorage.getItem(addr + "_name") || "(unknown)";
+        return { name, addr, xp, level: 1 + Math.floor(xp / 100) };
+      })
+      .sort((a, b) => b.xp - a.xp);
+  }
+
+  function renderLeaderboard() {
+    const list = document.getElementById("leaderboard-list");
+    const entries = getLeaderboard();
+    list.innerHTML = entries.map(e =>
+      `<li>${e.name} — ${shorten(e.addr)} — Lv ${e.level} — XP: ${e.xp}</li>`).join("");
+  }
+</script>
+
+</body>
+</html>
