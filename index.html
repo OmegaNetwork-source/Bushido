@@ -47,6 +47,25 @@
       margin-top: 10px;
     }
 
+    .battle-button {
+      display: inline-block;
+      background-color: #8c2d19;
+      color: #fff0d8;
+      font-family: 'Cinzel Decorative', serif;
+      font-size: 1.2em;
+      padding: 12px 30px;
+      text-decoration: none;
+      border-radius: 8px;
+      border: 2px solid #3a2f23;
+      transition: background-color 0.3s, color 0.3s;
+      margin-top: 20px;
+    }
+
+    .battle-button:hover {
+      background-color: #3a2f23;
+      color: #fbc88d;
+    }
+
     nav {
       background-color: #8c5e3c;
       display: flex;
@@ -116,7 +135,8 @@
       color: #f8f1e5;
       font-family: 'Georgia', serif;
     }
-      @media screen and (max-width: 768px) {
+
+    @media screen and (max-width: 768px) {
       header h1 {
         font-size: 2em;
       }
@@ -145,6 +165,9 @@
     <h1>Bushido</h1>
     <div class="kanji">武士道</div>
     <p>The Way of the Warrior</p>
+    <div>
+      <a href="https://game-pi-rosy.vercel.app/" target="_blank" class="battle-button">Battle</a>
+    </div>
   </header>
 
   <nav>
@@ -228,4 +251,3 @@
   </footer>
 </body>
 </html>
-
