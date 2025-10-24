@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export default function Landing({ onEnterGame }) {
+export default function Landing({ onEnterGame, onSelectGame }) {
   const [showPreview, setShowPreview] = useState(false);
 
   const previewImages = [
@@ -127,35 +127,36 @@ export default function Landing({ onEnterGame }) {
             ⚔️ Battle
           </button>
           <button 
-            disabled
+            onClick={() => onSelectGame('bushido-platformer')}
             style={{
               display: 'inline-flex',
-              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               width: window.innerWidth > 768 ? '250px' : '160px',
               height: '75px',
-              background: 'linear-gradient(135deg, #0f3460 0%, #533483 100%)',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               color: '#fff',
               fontFamily: "'Cinzel Decorative', serif",
               fontSize: window.innerWidth > 768 ? '1.3em' : '1em',
               padding: '12px 20px',
-              border: '3px solid rgba(83,52,131,0.6)',
+              border: '3px solid rgba(102,126,234,0.6)',
               borderRadius: '12px',
-              cursor: 'not-allowed',
-              boxShadow: '0 10px 30px rgba(83,52,131,0.4)',
+              cursor: 'pointer',
+              boxShadow: '0 10px 30px rgba(102,126,234,0.4)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               fontWeight: 'bold',
-              letterSpacing: '1px',
-              opacity: '0.7'
+              letterSpacing: '1px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-5px) scale(1.05)';
+              e.target.style.boxShadow = '0 15px 40px rgba(118,75,162,0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0) scale(1)';
+              e.target.style.boxShadow = '0 10px 30px rgba(102,126,234,0.4)';
             }}
           >
-            <span>🌍 Open World</span>
-            <span style={{
-              fontSize: '0.5em',
-              marginTop: '3px',
-              color: '#00d4ff',
-              fontWeight: '600'
-            }}>Coming Soon</span>
+            🌍 Open World
           </button>
         </div>
       </header>

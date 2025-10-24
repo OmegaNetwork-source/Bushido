@@ -3,6 +3,7 @@ import { useMetaMask } from './MetaMaskContext';
 import Landing from './Landing';
 import GameHub from './GameHub';
 import BushidoDuelGame from './BushidoDuelGame';
+import BushidoPlatformer from './BushidoPlatformer';
 import Leaderboard from './Leaderboard';
 import MultiplayerLobby from './MultiplayerLobby';
 import MultiplayerGame from './MultiplayerGame';
@@ -82,7 +83,13 @@ export default function App() {
 
   // Show landing page first
   if (showLanding) {
-    return <Landing onEnterGame={() => setShowLanding(false)} />;
+    return <Landing 
+      onEnterGame={() => setShowLanding(false)}
+      onSelectGame={(game) => {
+        setSelectedGame(game);
+        setShowLanding(false);
+      }}
+    />;
   }
 
   function renderGame() {
@@ -96,6 +103,9 @@ export default function App() {
       return <MultiplayerGame onExit={() => setMultiplayerMode(null)} />;
     }
     if (selectedGame === 'bushido-duel') return <BushidoDuelGame />;
+    if (selectedGame === 'bushido-platformer') {
+      return <BushidoPlatformer onBack={() => setSelectedGame(null)} />;
+    }
     return <GameHub onSelect={setSelectedGame} />;
   }
 
