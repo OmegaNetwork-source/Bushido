@@ -20,13 +20,16 @@ export default function Leaderboard({ onClose }) {
 
   React.useEffect(() => {
     async function fetchLeaderboard() {
+      console.log('Fetching leaderboard for tab:', activeTab);
       setLoading(true);
+      setEntries([]); // Clear entries before fetching
       
       try {
         const provider = new ethers.JsonRpcProvider('https://api.infra.mainnet.somnia.network/');
         
         if (activeTab === 'battle') {
           // Fetch Battle leaderboard (wins/losses)
+          console.log('Fetching Battle leaderboard...');
           const contract = new ethers.Contract(BATTLE_CONTRACT_ADDRESS, BATTLE_ABI, provider);
           const [addresses, wins, losses] = await contract.getLeaderboard(100, 0);
           
@@ -37,9 +40,11 @@ export default function Leaderboard({ onClose }) {
             type: 'battle'
           }));
           
+          console.log('Battle scores:', scores.length);
           setEntries(scores);
-        } else {
+        } else if (activeTab === 'coins') {
           // Fetch Coin Collector leaderboard (cumulative coins)
+          console.log('Fetching Coin Collector leaderboard...');
           const contract = new ethers.Contract(COIN_CONTRACT_ADDRESS, COIN_ABI, provider);
           const [addresses, coins] = await contract.getTopPlayers(100);
           
@@ -49,6 +54,7 @@ export default function Leaderboard({ onClose }) {
             type: 'coins'
           }));
           
+          console.log('Coin scores:', scores.length);
           setEntries(scores);
         }
       } catch (error) {
@@ -111,6 +117,11 @@ export default function Leaderboard({ onClose }) {
           aria-label="Close"
         >&times;</button>
         <h2 style={{ margin: '0 0 18px 0', textAlign: 'center', letterSpacing: 1.5, fontWeight: 800, fontSize: 32, background: 'linear-gradient(90deg, #fff, #b3b3b3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Leaderboard</h2>
+        
+        {/* Debug indicator - remove after testing */}
+        <div style={{ fontSize: '12px', color: '#00d4ff', marginBottom: '8px', textAlign: 'center' }}>
+          Active Tab: {activeTab} | Entries: {entries.length} | Loading: {loading ? 'Yes' : 'No'}
+        </div>
         
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '22px' }}>
