@@ -64,23 +64,49 @@ export default function Leaderboard({ onClose }) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-      background: 'linear-gradient(135deg, #232526 0%, #414345 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-      animation: 'fadeIn 0.2s'
+      background: 'rgba(0, 0, 0, 0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+      animation: 'fadeIn 0.2s',
+      padding: '20px'
     }}>
       <div style={{
-        background: 'rgba(24,24,27,0.85)', color: '#fff', borderRadius: 24, padding: '32px 20px 28px 20px', 
+        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', 
+        color: '#fff', 
+        borderRadius: 24, 
+        padding: '32px 20px 28px 20px', 
         minWidth: window.innerWidth > 768 ? 550 : 320, 
         maxWidth: window.innerWidth > 768 ? 700 : '95vw',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.28)', position: 'relative', textAlign: 'center', backdropFilter: 'blur(8px)', border: '1.5px solid #333',
+        width: '100%',
+        boxShadow: '0 8px 32px rgba(168, 85, 247, 0.5), 0 0 0 2px rgba(168, 85, 247, 0.3)', 
+        position: 'relative', 
+        textAlign: 'center', 
+        border: '2px solid #a855f7',
         maxHeight: '85vh',
         overflowY: 'auto'
       }}>
         <button
           onClick={onClose}
           style={{
-            position: 'absolute', top: 14, right: 18, background: 'rgba(40,40,40,0.85)', color: '#fff',
-            border: 'none', borderRadius: '50%', width: 36, height: 36, fontSize: 22, cursor: 'pointer', lineHeight: '36px',
-            boxShadow: '0 2px 8px #0004', transition: 'background 0.15s'
+            position: 'absolute', top: 14, right: 18, 
+            background: '#ec4899', 
+            color: '#fff',
+            border: 'none', 
+            borderRadius: '50%', 
+            width: 40, 
+            height: 40, 
+            fontSize: 24, 
+            cursor: 'pointer', 
+            lineHeight: '40px',
+            boxShadow: '0 4px 12px rgba(236, 72, 153, 0.5)', 
+            transition: 'all 0.2s',
+            fontWeight: 'bold'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.1)';
+            e.target.style.background = '#db2777';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)';
+            e.target.style.background = '#ec4899';
           }}
           aria-label="Close"
         >&times;</button>
@@ -123,8 +149,29 @@ export default function Leaderboard({ onClose }) {
             🪙 Coin Collector
           </button>
         </div>
-        {loading && <div style={{fontSize:18,opacity:0.8}}>Loading leaderboard...</div>}
-        {!loading && !entries.length && <div style={{fontSize:18,opacity:0.8}}>No scores yet!</div>}
+        {loading && (
+          <div style={{
+            fontSize: 20, 
+            color: '#00d4ff', 
+            padding: '40px 20px',
+            fontWeight: 600
+          }}>
+            ⏳ Loading leaderboard...
+          </div>
+        )}
+        {!loading && !entries.length && (
+          <div style={{
+            fontSize: 20, 
+            color: '#a855f7', 
+            padding: '40px 20px',
+            fontWeight: 600,
+            background: 'rgba(168, 85, 247, 0.1)',
+            borderRadius: '12px',
+            border: '2px solid rgba(168, 85, 247, 0.3)'
+          }}>
+            🎮 No scores yet! Be the first to play!
+          </div>
+        )}
         {!loading && entries.length > 0 && (
           <table style={{ width: '100%', background: 'transparent', color: '#fff', borderRadius: 12, fontSize: 16, fontWeight: 500, borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
