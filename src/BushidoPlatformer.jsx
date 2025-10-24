@@ -31,16 +31,16 @@ const LEADERBOARD_ABI = [
 
 export default function BushidoPlatformer({ onBack }) {
   const canvasRef = useRef(null);
-  const [gameStarted, setGameStarted] = useState(false);
+  const [gameStarted, setGameStarted] = useState(true); // Start game immediately
   const [gameOver, setGameOver] = useState(false);
   const [finalScore, setFinalScore] = useState(0);
   const [submittingScore, setSubmittingScore] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const { account } = useMetaMask();
   const gameStateRef = useRef({
-    player: {
+      player: {
       x: 100,
-      y: 300,
+      y: 590, // Start on the ground
       width: 40,
       height: 60,
       velocityX: 0,
@@ -53,7 +53,9 @@ export default function BushidoPlatformer({ onBack }) {
       health: 5,
       maxHealth: 5,
       invincible: false,
-      invincibleTimer: 0
+      invincibleTimer: 0,
+      dropping: false,
+      dropTimer: 0
     },
     camera: {
       x: 0,
@@ -62,65 +64,113 @@ export default function BushidoPlatformer({ onBack }) {
     keys: {},
     platforms: (() => {
       const platforms = [
-        // Infinite ground - stone path
-        { x: 0, y: 550, width: 50000, height: 50, color: '#5a5a5a', type: 'ground' }
+        // Infinite ground - stone path (lowered for better gameplay)
+        { x: 0, y: 650, width: 50000, height: 50, color: '#5a5a5a', type: 'ground' }
       ];
       
-      // Generate platforms procedurally every 200-300 pixels
-      for (let x = 300; x < 50000; x += Math.random() * 100 + 200) {
-        const heights = [250, 300, 350, 400, 450];
+      // Generate platforms with more varied spacing and heights
+      let x = 300;
+      while (x < 50000) {
+        // More height options for variety (from high in sky to low near ground)
+        const heights = [280, 320, 360, 400, 440, 480, 520, 560, 600];
         const colors = ['#8B4513', '#D2691E', '#CD853F'];
+        
+        // Random platform size with more variety
+        const width = Math.floor(Math.random() * 120 + 100); // 100-220 width
+        
+        // Pick a random height
+        const y = heights[Math.floor(Math.random() * heights.length)];
+        
         platforms.push({
           x: Math.floor(x),
-          y: heights[Math.floor(Math.random() * heights.length)],
-          width: Math.floor(Math.random() * 80 + 120), // 120-200 width
+          y: y,
+          width: width,
           height: 20,
           color: colors[Math.floor(Math.random() * colors.length)],
           type: 'wood'
         });
+        
+        // More varied spacing - sometimes close, sometimes far apart
+        const spacingType = Math.random();
+        if (spacingType < 0.3) {
+          // Close together - cluster of platforms
+          x += Math.random() * 100 + 150; // 150-250 pixels
+        } else if (spacingType < 0.7) {
+          // Medium spacing
+          x += Math.random() * 150 + 250; // 250-400 pixels
+        } else {
+          // Wide gaps - challenging jumps
+          x += Math.random() * 200 + 350; // 350-550 pixels
+        }
       }
       
       return platforms;
     })(),
     coins: (() => {
       const coins = [];
-      // Generate coins every 150-300 pixels
-      for (let x = 200; x < 50000; x += Math.random() * 150 + 150) {
-        const heights = [200, 250, 300, 350, 400, 480];
+      // Generate coins with varied spacing to match platform variety
+      let x = 200;
+      while (x < 50000) {
+        // Coin heights that don't overlap with platform zones
+        const heights = [230, 270, 310, 350, 390, 430, 470, 510, 550, 590, 620];
         coins.push({
           x: Math.floor(x),
           y: heights[Math.floor(Math.random() * heights.length)],
           collected: false
         });
+        
+        // Varied coin spacing - sometimes clusters, sometimes spread out
+        const spacingType = Math.random();
+        if (spacingType < 0.4) {
+          // Close together - trail of coins
+          x += Math.random() * 80 + 100; // 100-180 pixels
+        } else {
+          // Spread out
+          x += Math.random() * 200 + 200; // 200-400 pixels
+        }
       }
       return coins;
     })(),
     dragons: [],
     lastDragonSpawn: 0,
-    enemies: (() => {
-      const enemies = [];
-      // Generate enemies every 800-1200 pixels on platforms
-      for (let x = 500; x < 50000; x += Math.random() * 400 + 800) {
-        const heights = [190, 240, 290];
-        const platformWidths = [150, 160, 170, 180, 190, 200];
-        const platformWidth = platformWidths[Math.floor(Math.random() * platformWidths.length)];
-        enemies.push({
-          x: Math.floor(x),
-          y: heights[Math.floor(Math.random() * heights.length)],
-          width: 40,
-          height: 60,
-          velocityX: 1,
-          direction: 1,
-          platformX: Math.floor(x),
-          platformWidth: platformWidth
-        });
-      }
-      return enemies;
-    })(),
+    enemies: [],
     score: 0,
     sprites: {},
     spritesLoaded: false
   });
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  // Initialize enemies on platforms
+  useEffect(() => {
+    const gameState = gameStateRef.current;
+    if (gameState.enemies.length === 0 && gameState.platforms.length > 0) {
+      const enemies = [];
+      const enemyHeight = 60;
+      
+      // Place enemies on every 5th platform
+      for (let i = 1; i < gameState.platforms.length; i += 5) {
+        const platform = gameState.platforms[i];
+        if (platform && platform.type === 'wood') {
+          enemies.push({
+            x: platform.x + 10,
+            y: platform.y - enemyHeight, // Place enemy on top of platform
+            width: 40,
+            height: enemyHeight,
+            velocityX: 1,
+            direction: 1,
+            platformX: platform.x,
+            platformWidth: platform.width
+          });
+        }
+      }
+      
+      gameState.enemies = enemies;
+    }
+  }, []);
 
   // Load sprites and remove white backgrounds
   useEffect(() => {
@@ -187,9 +237,11 @@ export default function BushidoPlatformer({ onBack }) {
     const ctx = canvas.getContext('2d');
     const gameState = gameStateRef.current;
 
-    // Set canvas size
-    canvas.width = 800;
-    canvas.height = 600;
+    // Set canvas size - much larger for better gameplay
+    const maxWidth = Math.min(window.innerWidth - 40, 1600);
+    const maxHeight = Math.min(window.innerHeight - 150, 900);
+    canvas.width = maxWidth;
+    canvas.height = maxHeight;
 
     // Keyboard controls
     const handleKeyDown = (e) => {
@@ -276,19 +328,19 @@ export default function BushidoPlatformer({ onBack }) {
       for (let treeX = 100; treeX < 60000; treeX += 300) {
         // Tree trunk
         ctx.fillStyle = '#654321';
-        ctx.fillRect(treeX, 400, 20, 150);
+        ctx.fillRect(treeX, 500, 20, 150);
         
         // Cherry blossom foliage
         ctx.fillStyle = '#FFB7C5';
         ctx.globalAlpha = 0.8;
         ctx.beginPath();
-        ctx.arc(treeX + 10, 380, 50, 0, Math.PI * 2);
+        ctx.arc(treeX + 10, 480, 50, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(treeX - 20, 400, 40, 0, Math.PI * 2);
+        ctx.arc(treeX - 20, 500, 40, 0, Math.PI * 2);
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(treeX + 40, 400, 40, 0, Math.PI * 2);
+        ctx.arc(treeX + 40, 500, 40, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
@@ -341,6 +393,20 @@ export default function BushidoPlatformer({ onBack }) {
         player.onGround = false;
         player.state = 'jumping';
       }
+      
+      // Drop through platforms when pressing down
+      if ((gameState.keys['ArrowDown'] || gameState.keys['s']) && player.onGround && !player.dropping) {
+        player.dropping = true;
+        player.dropTimer = 15; // Drop for 15 frames
+      }
+      
+      // Update drop timer
+      if (player.dropping) {
+        player.dropTimer -= deltaTime;
+        if (player.dropTimer <= 0) {
+          player.dropping = false;
+        }
+      }
 
       // Apply gravity
       if (!player.onGround) {
@@ -355,6 +421,11 @@ export default function BushidoPlatformer({ onBack }) {
       // Check ground collision
       player.onGround = false;
       for (let platform of gameState.platforms) {
+        // Skip wooden platforms when dropping
+        if (player.dropping && platform.type === 'wood') {
+          continue;
+        }
+        
         if (
           player.x + player.width > platform.x &&
           player.x < platform.x + platform.width &&
@@ -382,8 +453,8 @@ export default function BushidoPlatformer({ onBack }) {
       }
 
       // Prevent falling through bottom
-      if (player.y > 600) {
-        player.y = 300;
+      if (player.y > 700) {
+        player.y = 590;
         player.x = 100;
         player.velocityY = 0;
       }
@@ -480,7 +551,7 @@ export default function BushidoPlatformer({ onBack }) {
 
       for (let platform of gameState.platforms) {
         if (platform.type === 'ground') {
-          // Stone path ground
+          // Stone path ground with strong top border
           ctx.fillStyle = platform.color;
           ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
           
@@ -490,8 +561,21 @@ export default function BushidoPlatformer({ onBack }) {
           for (let i = 0; i < platform.width; i += 50) {
             ctx.strokeRect(platform.x + i, platform.y, 50, platform.height);
           }
+          
+          // Strong black top border for visibility
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(platform.x, platform.y);
+          ctx.lineTo(platform.x + platform.width, platform.y);
+          ctx.stroke();
         } else {
-          // Wooden platforms
+          // Wooden platforms with strong shadow for visibility
+          // Drop shadow
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          ctx.fillRect(platform.x + 4, platform.y + 4, platform.width, platform.height);
+          
+          // Platform base
           ctx.fillStyle = platform.color;
           ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
           
@@ -505,9 +589,9 @@ export default function BushidoPlatformer({ onBack }) {
             ctx.stroke();
           }
           
-          // Wood plank borders
-          ctx.strokeStyle = '#654321';
-          ctx.lineWidth = 2;
+          // Strong black borders for visibility
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 3;
           ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
         }
       }
@@ -516,19 +600,19 @@ export default function BushidoPlatformer({ onBack }) {
       for (let toriiX = 600; toriiX < 50000; toriiX += 800) {
         // Torii gate pillars
         ctx.fillStyle = '#CD5C5C';
-        ctx.fillRect(toriiX, 450, 15, 100);
-        ctx.fillRect(toriiX + 100, 450, 15, 100);
+        ctx.fillRect(toriiX, 550, 15, 100);
+        ctx.fillRect(toriiX + 100, 550, 15, 100);
         
         // Top horizontal beam
         ctx.fillStyle = '#CD5C5C';
-        ctx.fillRect(toriiX - 10, 440, 135, 12);
+        ctx.fillRect(toriiX - 10, 540, 135, 12);
         
         // Second beam
-        ctx.fillRect(toriiX + 5, 465, 105, 8);
+        ctx.fillRect(toriiX + 5, 565, 105, 8);
         
         // Black caps
         ctx.fillStyle = '#2C2C2C';
-        ctx.fillRect(toriiX - 12, 436, 139, 6);
+        ctx.fillRect(toriiX - 12, 536, 139, 6);
       }
 
       // Draw and collect Japanese-style coins
@@ -696,11 +780,12 @@ export default function BushidoPlatformer({ onBack }) {
 
       // Draw controls hint
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(10, canvas.height - 60, 300, 50);
+      ctx.fillRect(10, canvas.height - 80, 350, 70);
       ctx.fillStyle = '#fff';
       ctx.font = '14px Arial';
-      ctx.fillText('← → or A/D: Move', 20, canvas.height - 35);
-      ctx.fillText('↑ or W or Space: Jump', 20, canvas.height - 15);
+      ctx.fillText('← → or A/D: Move', 20, canvas.height - 55);
+      ctx.fillText('↑ or W or Space: Jump', 20, canvas.height - 35);
+      ctx.fillText('↓ or S: Drop through platform', 20, canvas.height - 15);
 
       animationId = requestAnimationFrame(gameLoop);
     };
@@ -749,9 +834,13 @@ export default function BushidoPlatformer({ onBack }) {
     const gameState = gameStateRef.current;
     gameState.player.health = gameState.player.maxHealth;
     gameState.player.x = 100;
-    gameState.player.y = 300;
+    gameState.player.y = 590;
     gameState.player.velocityX = 0;
     gameState.player.velocityY = 0;
+    gameState.player.dropping = false;
+    gameState.player.dropTimer = 0;
+    gameState.player.invincible = false;
+    gameState.player.invincibleTimer = 0;
     gameState.score = 0;
     gameState.camera.x = 0;
     gameState.camera.y = 0;
@@ -763,11 +852,38 @@ export default function BushidoPlatformer({ onBack }) {
     
     // Reset dragons
     gameState.dragons = [];
+    gameState.lastDragonSpawn = 0;
     
+    // Reset enemies to their starting positions on platforms
+    const enemies = [];
+    const enemyHeight = 60;
+    for (let i = 1; i < gameState.platforms.length; i += 5) {
+      const platform = gameState.platforms[i];
+      if (platform && platform.type === 'wood') {
+        enemies.push({
+          x: platform.x + 10,
+          y: platform.y - enemyHeight,
+          width: 40,
+          height: enemyHeight,
+          velocityX: 1,
+          direction: 1,
+          platformX: platform.x,
+          platformWidth: platform.width
+        });
+      }
+    }
+    gameState.enemies = enemies;
+    
+    // Force restart by toggling gameStarted state
     setGameOver(false);
     setFinalScore(0);
     setScoreSubmitted(false);
-    setGameStarted(true);
+    setGameStarted(false);
+    
+    // Restart game after a brief moment
+    setTimeout(() => {
+      setGameStarted(true);
+    }, 10);
   };
 
   // Game Over screen
@@ -1011,28 +1127,34 @@ export default function BushidoPlatformer({ onBack }) {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      width: '100vw',
+      height: '100vh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '20px'
+      padding: '10px',
+      overflow: 'hidden',
+      position: 'fixed',
+      top: 0,
+      left: 0
     }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        width: '800px',
-        marginBottom: '20px'
+        width: '95%',
+        maxWidth: '1600px',
+        marginBottom: '10px'
       }}>
-        <h2 style={{ color: '#fff', margin: 0, textShadow: '2px 2px 4px rgba(0,0,0,0.3)' }}>
-          🎮 Bushido Platformer
+        <h2 style={{ color: '#fff', margin: 0, textShadow: '2px 2px 4px rgba(0,0,0,0.3)', fontSize: '1.8em' }}>
+          Coin Collector コインコレクター
         </h2>
         <button
           onClick={onBack}
           style={{
-            padding: '10px 20px',
+            padding: '12px 24px',
             background: 'rgba(255,255,255,0.2)',
             color: '#fff',
             border: '2px solid rgba(255,255,255,0.3)',
@@ -1040,7 +1162,8 @@ export default function BushidoPlatformer({ onBack }) {
             fontWeight: 'bold',
             cursor: 'pointer',
             backdropFilter: 'blur(10px)',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            fontSize: '1.1em'
           }}
           onMouseEnter={(e) => {
             e.target.style.background = 'rgba(255,255,255,0.3)';
@@ -1061,7 +1184,8 @@ export default function BushidoPlatformer({ onBack }) {
           border: '4px solid rgba(205,92,92,0.6)',
           borderRadius: '12px',
           boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-          background: 'linear-gradient(180deg, #FFB6C1 0%, #FFA07A 50%, #FFD700 100%)'
+          background: 'linear-gradient(180deg, #FFB6C1 0%, #FFA07A 50%, #FFD700 100%)',
+          display: 'block'
         }}
       />
     </div>

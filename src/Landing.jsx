@@ -156,7 +156,7 @@ export default function Landing({ onEnterGame, onSelectGame }) {
               e.target.style.boxShadow = '0 10px 30px rgba(102,126,234,0.4)';
             }}
           >
-            🌍 Open World
+            🪙 Coin Collector
           </button>
         </div>
       </header>
