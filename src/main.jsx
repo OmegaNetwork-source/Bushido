@@ -1,12 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { WalletProvider } from '@suiet/wallet-kit';
-import '@suiet/wallet-kit/style.css';
+import { MetaMaskProvider } from './MetaMaskContext';
+import { MultiplayerProvider } from './MultiplayerContext';
 import App from './App';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <WalletProvider>
-    <App />
-  </WalletProvider>
+  <MetaMaskProvider>
+    <MultiplayerProvider>
+      <App />
+    </MultiplayerProvider>
+  </MetaMaskProvider>
 );

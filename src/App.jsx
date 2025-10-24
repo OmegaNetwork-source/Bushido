@@ -1,23 +1,107 @@
 import { useState } from 'react';
-import { ConnectButton } from '@suiet/wallet-kit';
+import { useMetaMask } from './MetaMaskContext';
+import Landing from './Landing';
 import GameHub from './GameHub';
-import FruitNinjaGame from './FruitNinjaGame';
-import NinjaDodgeGame from './NinjaDodgeGame';
 import BushidoDuelGame from './BushidoDuelGame';
 import Leaderboard from './Leaderboard';
-import MarioPlatformerGame from './MarioPlatformerGame';
+import MultiplayerLobby from './MultiplayerLobby';
+import MultiplayerGame from './MultiplayerGame';
+
+function ConnectButton() {
+  const { account, connectWallet, disconnect, connecting } = useMetaMask();
+
+  if (account) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '12px',
+        background: 'rgba(0,0,0,0.05)',
+        padding: '8px 16px',
+        borderRadius: '10px'
+      }}>
+        <span style={{ 
+          fontSize: '14px',
+          fontFamily: 'monospace',
+          fontWeight: '600',
+          color: '#333'
+        }}>
+          {account.slice(0, 6)}...{account.slice(-4)}
+        </span>
+        <button 
+          onClick={disconnect} 
+          style={{ 
+            padding: '6px 14px',
+            background: '#e74c3c',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            transition: 'background 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = '#c0392b'}
+          onMouseLeave={(e) => e.currentTarget.style.background = '#e74c3c'}
+        >
+          Disconnect
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button 
+      onClick={connectWallet} 
+      disabled={connecting}
+      style={{ 
+        padding: '10px 20px',
+        background: '#3498db',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '8px',
+        fontSize: '14px',
+        fontWeight: '600',
+        cursor: connecting ? 'not-allowed' : 'pointer',
+        opacity: connecting ? 0.7 : 1,
+        transition: 'background 0.2s'
+      }}
+      onMouseEnter={(e) => !connecting && (e.currentTarget.style.background = '#2980b9')}
+      onMouseLeave={(e) => !connecting && (e.currentTarget.style.background = '#3498db')}
+    >
+      {connecting ? 'Connecting...' : '🦊 Connect MetaMask'}
+    </button>
+  );
+}
 
 export default function App() {
+  const [showLanding, setShowLanding] = useState(true);
   const [selectedGame, setSelectedGame] = useState(null);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [multiplayerMode, setMultiplayerMode] = useState(null); // null, 'lobby', or 'game'
+
+  // Show landing page first
+  if (showLanding) {
+    return <Landing onEnterGame={() => setShowLanding(false)} />;
+  }
 
   function renderGame() {
-    console.log('App renderGame called, selectedGame:', selectedGame);
-    if (selectedGame === 'fruit-ninja') return <FruitNinjaGame />;
-    if (selectedGame === 'ninja-dodge') return <NinjaDodgeGame />;
+    if (multiplayerMode === 'lobby') {
+      return <MultiplayerLobby 
+        onStartGame={() => setMultiplayerMode('game')} 
+        onBack={() => setMultiplayerMode(null)}
+      />;
+    }
+    if (multiplayerMode === 'game') {
+      return <MultiplayerGame onExit={() => setMultiplayerMode(null)} />;
+    }
     if (selectedGame === 'bushido-duel') return <BushidoDuelGame />;
-    if (selectedGame === 'mario-platformer') return <MarioPlatformerGame />;
     return <GameHub onSelect={setSelectedGame} />;
+  }
+
+  // Hide header/nav when in multiplayer
+  if (multiplayerMode) {
+    return renderGame();
   }
 
   return (
@@ -34,8 +118,11 @@ export default function App() {
           gap: '12px'
         }}
       >
-        <button onClick={() => setSelectedGame(null)}>
-          Arcade Hub
+        <button onClick={() => setShowLanding(true)}>
+          🏠 Home
+        </button>
+        <button onClick={() => setMultiplayerMode('lobby')}>
+          🎮 Multiplayer
         </button>
         <button onClick={() => setShowLeaderboard(true)}>
           Leaderboard

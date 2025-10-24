@@ -91,39 +91,71 @@
 }
 
 body {
-  background: #f4f4ed;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #e94560 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
   font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 }
 
 .container {
   max-width: 540px;
   margin: 32px auto;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.3);
   padding: 32px 24px 24px 24px;
 }
 
+header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
 header h1 {
-  font-size: 2.5rem;
-  font-weight: 800;
-  letter-spacing: 1px;
-  margin-bottom: 12px;
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  margin: 0;
+  font-family: 'Cinzel Decorative', serif !important;
+  background: linear-gradient(135deg, #00d4ff 0%, #a855f7 50%, #ec4899 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  text-shadow: none !important;
+}
+
+@media (max-width: 768px) {
+  header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  header h1 {
+    font-size: 1.8rem;
+  }
 }
 
 nav button {
-  background: #222;
+  background: linear-gradient(135deg, #533483 0%, #0f3460 100%);
   color: #fff;
-  border: none;
+  border: 2px solid rgba(168,85,247,0.3);
   border-radius: 8px;
-  padding: 10px 22px;
-  font-size: 1.1rem;
+  padding: 10px 24px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.2s;
+  box-shadow: 0 4px 10px rgba(83,52,131,0.3);
 }
 nav button:hover {
-  background: #444;
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(168,85,247,0.4);
+}
+nav button:active {
+  transform: translateY(0);
 }
 
 .game-card {

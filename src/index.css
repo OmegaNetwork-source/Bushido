@@ -1,6 +1,8 @@
 body {
   font-family: 'Segoe UI', 'Arial', sans-serif;
-  background: #e6e6d6;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #e94560 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
   margin: 0;
 }
 .container {
@@ -46,4 +48,78 @@ button {
 }
 button:hover {
   background: #555;
+}
+
+/* Bobbing animation for characters */
+@keyframes bob {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+.bob {
+  animation: bob 2s ease-in-out infinite;
+}
+
+/* Attack emoji animation */
+@keyframes attack-effect {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+}
+
+.attack-emoji {
+  animation: attack-effect 0.6s ease-out;
+}
+
+/* Player attacking animation (moves right towards enemy) */
+@keyframes attack-right {
+  0% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(200px);
+  }
+  60% {
+    transform: translateX(200px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.attacking-player {
+  animation: attack-right 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enemy attacking animation (moves left towards player) */
+@keyframes attack-left {
+  0% {
+    transform: translateX(0);
+  }
+  40% {
+    transform: translateX(-200px);
+  }
+  60% {
+    transform: translateX(-200px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.attacking-enemy {
+  animation: attack-left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }

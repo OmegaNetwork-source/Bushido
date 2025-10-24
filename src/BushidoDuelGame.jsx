@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { TransactionBlock } from '@mysten/sui.js/transactions';
-import { useWallet } from '@suiet/wallet-kit';
+import { ethers } from 'ethers';
+import { useMetaMask } from './MetaMaskContext';
 
 const SPRITES = {
   fireRight: 'https://i.postimg.cc/brgCtW68/fire-right-facing.png',
@@ -9,54 +9,72 @@ const SPRITES = {
   waterLeft: 'https://i.postimg.cc/k4pFPCh2/water-left-facing.png'
 };
 
-const PACKAGE_ID = '0x3fa742fea7561af7a5ea9b8f88f9fa4c55f6aca31dc938b380fc3c8381b135b8';
-const MODULE = 'simple_leaderboard';
-const FUNCTION = 'submit_score';
-const LEADERBOARD_ID = '0x74924486f3fe198eff38e7a3920ffc81a5a8a4554fe8e5621df84e6f6be405cd';
-const GAME_ID_BYTES = [98,117,115,104,105,100,111,95,100,117,101,108]; // "bushido_duel"
-
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function SubmitScoreButton({ score }) {
-  const { account, signAndExecuteTransactionBlock } = useWallet();
+function SubmitScoreButton({ score, playerAddress }) {
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmitScore = async () => {
-    if (!account?.address) {
-      alert('Please connect your Sui wallet first!');
+    if (!playerAddress) {
+      alert('Please connect your MetaMask wallet first!');
       return;
     }
 
-    const tx = new TransactionBlock();
-    tx.moveCall({
-      target: `${PACKAGE_ID}::${MODULE}::${FUNCTION}`,
-      arguments: [
-        tx.object(LEADERBOARD_ID),
-        tx.pure(account.address),
-        tx.pure(score),
-      ],
-    });
-
+    setSubmitting(true);
     try {
-      const result = await signAndExecuteTransactionBlock({
-        transactionBlock: tx,
-        options: { showEffects: true },
-      });
-      alert('Score submitted! Tx digest: ' + result.digest);
-    } catch (e) {
-      alert('Failed to submit score: ' + e.message);
+      // Ethers v6 syntax
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const LEADERBOARD_CONTRACT_ADDRESS = '0x8990bbf7ab7fe6bd146ddc066ca7c88773c1cc9b';
+      const LEADERBOARD_ABI = [
+        "function recordWin(address player) external"
+      ];
+      
+      const contract = new ethers.Contract(LEADERBOARD_CONTRACT_ADDRESS, LEADERBOARD_ABI, signer);
+      
+      // Record win on blockchain
+      const tx = await contract.recordWin(playerAddress);
+      console.log('Recording win... Transaction hash:', tx.hash);
+      
+      await tx.wait();
+      console.log('Win recorded successfully!');
+      
+      alert('🎉 Victory recorded on Somnia blockchain! Check the leaderboard to see your rank!');
+    } catch (error) {
+      console.error('Error recording win:', error);
+      alert('Failed to record win on blockchain. Please try again.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <button onClick={handleSubmitScore} style={{ marginTop: 10 }}>
-      Submit Score On-Chain
+    <button 
+      onClick={handleSubmitScore} 
+      disabled={submitting}
+      style={{ 
+        marginTop: 10, 
+        fontSize: 18, 
+        padding: '10px 32px', 
+        borderRadius: 10, 
+        border: '2px solid #333', 
+        background: submitting ? '#666' : '#4CAF50', 
+        color: '#fff', 
+        fontWeight: 'bold',
+        cursor: submitting ? 'wait' : 'pointer',
+        opacity: submitting ? 0.7 : 1
+      }}
+    >
+      {submitting ? '⏳ Recording...' : '✅ Submit Victory'}
     </button>
   );
 }
 
 export default function BushidoDuelGame() {
+  const { account } = useMetaMask();
   const [clan, setClan] = useState(null); // 'fire' or 'water'
   const [player, setPlayer] = useState({ hp: 10, clan: "fire", name: "Fire Bushido" });
   const [enemy, setEnemy] = useState({ hp: 10, clan: "water", name: "Water Bushido" });
@@ -67,6 +85,7 @@ export default function BushidoDuelGame() {
 
   // Animation state
   const [effect, setEffect] = useState({ show: false, emoji: "", target: "" }); // target: "player" or "enemy"
+  const [attackingPlayer, setAttackingPlayer] = useState(null); // "player" or "enemy" when attacking
 
   // Character image logic
   let playerImg, enemyImg;
@@ -95,96 +114,99 @@ export default function BushidoDuelGame() {
     }
   }
 
-  function animateAttack(target, emoji) {
+  function animateAttack(target, emoji, attacker) {
     setEffect({ show: true, emoji, target });
+    setAttackingPlayer(attacker); // Trigger movement animation
     setTimeout(() => {
       setEffect({ show: false, emoji: "", target: "" });
-    }, 500);
+      setAttackingPlayer(null); // Reset position
+    }, 600);
   }
 
   function playerAct(action) {
     if (!playerTurn || gameOver) return;
-    setPlayer(prevPlayer => {
-      setEnemy(prevEnemy => {
-        let p = { ...prevPlayer };
-        let e = { ...prevEnemy };
-        let msg = "";
-        if (action === "slash") {
-          const dmg = getRandomInt(1, 2);
-          e.hp -= dmg;
-          msg = `You slashed the enemy for ${dmg} damage.`;
-          animateAttack("enemy", "⚔️");
-        } else if (action === "heal") {
-          const heal = getRandomInt(1, 2);
-          p.hp = Math.min(10, p.hp + heal);
-          msg = `You healed for ${heal} HP.`;
-          animateAttack("player", "❤️");
-        } else if (action === "beam") {
-          const dmg = getRandomInt(1, 3);
-          e.hp -= dmg;
-          msg = `Your beam blast hit for ${dmg} damage.`;
-          animateAttack("enemy", "💥");
-        } else if (action === "kick") {
-          e.hp -= 1;
-          msg = `You kicked the enemy for 1 damage.`;
-          animateAttack("enemy", "🔥");
-        }
-        logMsg(msg);
-        updateHealth(p, e);
-        setPlayerTurn(false);
-        setTimeout(enemyTurn, 900);
-        return p;
-      });
-      return prevPlayer;
-    });
+    
+    let p = { ...player };
+    let e = { ...enemy };
+    let msg = "";
+    
+    if (action === "slash") {
+      const dmg = getRandomInt(1, 2);
+      e.hp -= dmg;
+      msg = `You slashed the enemy for ${dmg} damage.`;
+      animateAttack("enemy", "⚔️", "player");
+    } else if (action === "heal") {
+      const heal = getRandomInt(1, 2);
+      p.hp = Math.min(10, p.hp + heal);
+      msg = `You healed for ${heal} HP.`;
+      animateAttack("player", "❤️", null); // No movement for heal
+    } else if (action === "beam") {
+      const dmg = getRandomInt(1, 3);
+      e.hp -= dmg;
+      msg = `Your beam blast hit for ${dmg} damage.`;
+      animateAttack("enemy", "💥", "player");
+    } else if (action === "kick") {
+      e.hp -= 1;
+      msg = `You kicked the enemy for 1 damage.`;
+      animateAttack("enemy", "🔥", "player");
+    }
+    
+    logMsg(msg);
+    updateHealth(p, e);
+    setPlayerTurn(false);
+    
+    // Trigger enemy turn after a delay, passing updated health values
+    if (e.hp > 0) {
+      setTimeout(() => enemyTurn(p, e), 900);
+    }
   }
 
-  function enemyTurn() {
-    if (enemy.hp <= 0 || player.hp <= 0) return;
-    setPlayer(prevPlayer => {
-      setEnemy(prevEnemy => {
-        let p = { ...prevPlayer };
-        let e = { ...prevEnemy };
-        const actions = ["slash", "slash", "kick", "kick", "heal", "beam", "slash", "kick", "hesitate"];
-        const action = actions[getRandomInt(0, actions.length - 1)];
-        let msg = "";
-        if (action === "hesitate") {
-          msg = `Enemy hesitates...`;
-          logMsg(msg);
-          setTimeout(() => setPlayerTurn(true), 900);
-          return e;
-        } else if (action === "slash") {
-          const dmg = getRandomInt(1, 2);
-          p.hp -= dmg;
-          msg = `Enemy slashed you for ${dmg} damage.`;
-          animateAttack("player", "⚔️");
-        } else if (action === "heal") {
-          const heal = getRandomInt(1, 2);
-          e.hp = Math.min(10, e.hp + heal);
-          msg = `Enemy heals itself for ${heal} HP.`;
-          animateAttack("enemy", "❤️");
-        } else if (action === "beam") {
-          const dmg = getRandomInt(1, 2);
-          p.hp -= dmg;
-          msg = `Enemy beam blast hit you for ${dmg} damage.`;
-          animateAttack("player", "💥");
-        } else if (action === "kick") {
-          p.hp -= 1;
-          msg = `Enemy kicked you for 1 damage.`;
-          animateAttack("player", "🔥");
-        }
-        logMsg(msg);
-        updateHealth(p, e);
-        setTimeout(() => setPlayerTurn(true), 900);
-        return e;
-      });
-      return prevPlayer;
-    });
+  function enemyTurn(currentPlayer, currentEnemy) {
+    // Use passed parameters if available, otherwise fall back to state
+    let p = currentPlayer ? { ...currentPlayer } : { ...player };
+    let e = currentEnemy ? { ...currentEnemy } : { ...enemy };
+    
+    if (e.hp <= 0 || p.hp <= 0) return;
+    
+    const actions = ["slash", "slash", "kick", "kick", "heal", "beam", "slash", "kick", "hesitate"];
+    const action = actions[getRandomInt(0, actions.length - 1)];
+    let msg = "";
+    
+    if (action === "hesitate") {
+      msg = `Enemy hesitates...`;
+      logMsg(msg);
+      setTimeout(() => setPlayerTurn(true), 900);
+      return;
+    } else if (action === "slash") {
+      const dmg = getRandomInt(1, 2);
+      p.hp -= dmg;
+      msg = `Enemy slashed you for ${dmg} damage.`;
+      animateAttack("player", "⚔️", "enemy");
+    } else if (action === "heal") {
+      const heal = getRandomInt(1, 2);
+      e.hp = Math.min(10, e.hp + heal);
+      msg = `Enemy heals itself for ${heal} HP.`;
+      animateAttack("enemy", "❤️", null); // No movement for heal
+    } else if (action === "beam") {
+      const dmg = getRandomInt(1, 2);
+      p.hp -= dmg;
+      msg = `Enemy beam blast hit you for ${dmg} damage.`;
+      animateAttack("player", "💥", "enemy");
+    } else if (action === "kick") {
+      p.hp -= 1;
+      msg = `Enemy kicked you for 1 damage.`;
+      animateAttack("player", "🔥", "enemy");
+    }
+    
+    logMsg(msg);
+    updateHealth(p, e);
+    setTimeout(() => setPlayerTurn(true), 900);
   }
 
   function executeFinalMove() {
     if (!playerTurn || gameOver) return;
     setFinalMoveActive(true);
+    let p = { ...player };
     let e = { ...enemy };
     let count = 0;
     const interval = setInterval(() => {
@@ -192,13 +214,15 @@ export default function BushidoDuelGame() {
         clearInterval(interval);
         setFinalMoveActive(false);
         setPlayerTurn(false);
-        setTimeout(enemyTurn, 900);
+        if (e.hp > 0) {
+          setTimeout(() => enemyTurn(p, e), 900);
+        }
         return;
       }
       e.hp -= 1;
       logMsg("💥 Final Move! Enemy takes 1 damage.");
       setEnemy({ ...e });
-      animateAttack("enemy", "💥");
+      animateAttack("enemy", "💥", "player");
       count++;
       if (e.hp <= 0) {
         setGameOver(true);
@@ -221,17 +245,156 @@ export default function BushidoDuelGame() {
 
   if (!clan) {
     return (
-      <div className="bushido-clan-select-container">
-        <div className="bushido-clan-select-title">Choose your clan:</div>
-        <div className="bushido-clan-select-btn-row">
-          <button
-            className="bushido-clan-select-btn fire"
-            onClick={() => chooseClan("fire")}
-          >🔥 Fire Bushido</button>
-          <button
-            className="bushido-clan-select-btn water"
-            onClick={() => chooseClan("water")}
-          >💧 Water Bushido</button>
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        background: 'linear-gradient(90deg, #2d0a0a 0%, #0a0a2e 50%, #0a1a2d 100%)'
+      }}>
+        <div style={{ 
+          width: '100%',
+          maxWidth: '1100px',
+          textAlign: 'center'
+        }}>
+          <h1 style={{ 
+            fontSize: window.innerWidth > 768 ? '4em' : '2.5em', 
+            color: '#fff', 
+            marginBottom: '15px', 
+            textShadow: '3px 3px 10px rgba(0,0,0,0.9)', 
+            fontFamily: 'Georgia, serif',
+            fontWeight: 'bold'
+          }}>武士道</h1>
+          <h2 style={{ 
+            color: '#fbc88d', 
+            marginBottom: '60px', 
+            fontSize: window.innerWidth > 768 ? '2.2em' : '1.5em', 
+            textShadow: '2px 2px 6px rgba(0,0,0,0.8)', 
+            fontFamily: 'Georgia, serif',
+            fontWeight: '300',
+            letterSpacing: '2px'
+          }}>Choose Your Clan</h2>
+          
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: window.innerWidth > 768 ? '1fr 1fr' : '1fr', 
+            gap: window.innerWidth > 768 ? '50px' : '30px',
+            maxWidth: '900px',
+            margin: '0 auto'
+          }}>
+            {/* Fire Clan */}
+            <div 
+              onClick={() => chooseClan('fire')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 20px 50px rgba(255,107,53,0.7)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = '0 10px 35px rgba(255,107,53,0.5)';
+              }}
+              style={{ 
+                background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)', 
+                padding: '40px 30px', 
+                borderRadius: '20px', 
+                cursor: 'pointer', 
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                border: '4px solid rgba(255,107,53,0.6)', 
+                boxShadow: '0 10px 35px rgba(255,107,53,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <img 
+                src="https://i.postimg.cc/P50z5f6k/fire.png" 
+                style={{ 
+                  width: '150px', 
+                  height: '150px', 
+                  filter: 'drop-shadow(0 0 20px #ff6b35)',
+                  objectFit: 'contain',
+                  marginBottom: '20px'
+                }} 
+                alt="Fire Bushido"
+              />
+              <h3 style={{ 
+                color: '#fff', 
+                fontSize: '2em', 
+                margin: '15px 0', 
+                fontFamily: 'Georgia, serif',
+                fontWeight: 'bold',
+                textShadow: '2px 2px 6px rgba(0,0,0,0.5)',
+                letterSpacing: '1px'
+              }}>🔥 Fire Bushido</h3>
+              <p style={{ 
+                color: 'rgba(255,255,255,0.95)', 
+                fontSize: '1.05em', 
+                lineHeight: '1.7', 
+                fontFamily: 'Georgia, serif',
+                maxWidth: '280px',
+                margin: '0 auto'
+              }}>Masters of aggression and raw power. Strike with the fury of volcanic flame!</p>
+            </div>
+            
+            {/* Water Clan */}
+            <div 
+              onClick={() => chooseClan('water')}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
+                e.currentTarget.style.boxShadow = '0 20px 50px rgba(52,152,219,0.7)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                e.currentTarget.style.boxShadow = '0 10px 35px rgba(52,152,219,0.5)';
+              }}
+              style={{ 
+                background: 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)', 
+                padding: '40px 30px', 
+                borderRadius: '20px', 
+                cursor: 'pointer', 
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+                border: '4px solid rgba(52,152,219,0.6)', 
+                boxShadow: '0 10px 35px rgba(52,152,219,0.5)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <img 
+                src="https://i.postimg.cc/VvFDSyJW/water.png" 
+                style={{ 
+                  width: '150px', 
+                  height: '150px', 
+                  filter: 'drop-shadow(0 0 20px #3498db)',
+                  objectFit: 'contain',
+                  marginBottom: '20px'
+                }} 
+                alt="Water Bushido"
+              />
+              <h3 style={{ 
+                color: '#fff', 
+                fontSize: '2em', 
+                margin: '15px 0', 
+                fontFamily: 'Georgia, serif',
+                fontWeight: 'bold',
+                textShadow: '2px 2px 6px rgba(0,0,0,0.5)',
+                letterSpacing: '1px'
+              }}>💧 Water Bushido</h3>
+              <p style={{ 
+                color: 'rgba(255,255,255,0.95)', 
+                fontSize: '1.05em', 
+                lineHeight: '1.7', 
+                fontFamily: 'Georgia, serif',
+                maxWidth: '280px',
+                margin: '0 auto'
+              }}>Flow like water, strike like a tidal wave. Patience refined into overwhelming force!</p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -294,10 +457,10 @@ export default function BushidoDuelGame() {
           <div style={{ fontSize: 13, color: '#fff', textShadow: '1px 1px 2px #000' }}>{enemy.hp}/10</div>
         </div>
         {/* Characters on ground */}
-        <div style={{ position: 'absolute', left: 60, bottom: 24, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', left: 60, bottom: 24, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={attackingPlayer === 'player' ? 'attacking-player' : ''}>
           <div style={{ width: 60, height: 18, background: 'rgba(0,0,0,0.18)', borderRadius: '50%', filter: 'blur(1px)', marginBottom: -10 }} />
           <div style={{ position: 'relative', width: 90, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={playerImg} alt="player" className="bob" style={{ height: 120, maxWidth: '30vw' }} />
+            <img src={playerImg} alt="player" className="bob" style={{ height: 120, maxWidth: '30vw', animationDelay: '0s' }} />
             {effect.show && effect.target === 'player' && (
               <span className="attack-emoji" style={{
                 position: 'absolute',
@@ -312,10 +475,10 @@ export default function BushidoDuelGame() {
             )}
           </div>
         </div>
-        <div style={{ position: 'absolute', right: 60, bottom: 24, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', right: 60, bottom: 24, zIndex: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }} className={attackingPlayer === 'enemy' ? 'attacking-enemy' : ''}>
           <div style={{ width: 60, height: 18, background: 'rgba(0,0,0,0.18)', borderRadius: '50%', filter: 'blur(1px)', marginBottom: -10 }} />
           <div style={{ position: 'relative', width: 90, height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={enemyImg} alt="enemy" className="bob" style={{ height: 120, maxWidth: '30vw' }} />
+            <img src={enemyImg} alt="enemy" className="bob" style={{ height: 120, maxWidth: '30vw', animationDelay: '1s' }} />
             {effect.show && effect.target === 'enemy' && (
               <span className="attack-emoji" style={{
                 position: 'absolute',
@@ -347,7 +510,7 @@ export default function BushidoDuelGame() {
           <span style={{ fontSize: 28 }}>💥</span> Beam Blast
         </button>
         <button disabled={!playerTurn || gameOver} onClick={() => playerAct('kick')} style={{ fontSize: 22, padding: '18px 0', background: '#222', color: '#fff', borderRadius: 10, border: 'none', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 28 }}>🔥</span> Kick
+          <span style={{ fontSize: 28 }}>🔥</span> Fire Kick
         </button>
       </div>
       {/* Final Move button if available */}
@@ -360,7 +523,7 @@ export default function BushidoDuelGame() {
       {gameOver && (
         <div style={{ textAlign: 'center', marginTop: 18 }}>
           <button onClick={() => chooseClan(clan)} style={{ fontSize: 18, padding: '10px 32px', borderRadius: 10, border: '2px solid #333', background: '#fafad2', color: '#111', fontWeight: 'bold', marginBottom: 10 }}>Restart</button>
-          <SubmitScoreButton score={player.hp > 0 ? 1 : 0} />
+          {player.hp > 0 && <SubmitScoreButton score={1} playerAddress={account} />}
         </div>
       )}
     </div>
