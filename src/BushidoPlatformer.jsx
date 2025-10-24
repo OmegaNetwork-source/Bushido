@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useMetaMask } from './MetaMaskContext';
+import CoinCollectorLeaderboard from './CoinCollectorLeaderboard';
 import { ethers } from 'ethers';
 
 const SPRITES = {
@@ -11,19 +12,72 @@ const SPRITES = {
   enemyRight: 'https://i.postimg.cc/21KVBGPL/water.png'
 };
 
-const LEADERBOARD_CONTRACT_ADDRESS = '0x8990bbf7ab7fe6bd146ddc066ca7c88773c1cc9b';
-const LEADERBOARD_ABI = [
+// Coin Collector specific contract - tracks cumulative coins across all games
+const COIN_CONTRACT_ADDRESS = '0x2d06d9568ae99f61f421ea99a46969878986fc2d';
+const COIN_CONTRACT_ABI = [
   {
-    "inputs": [{"internalType": "address","name": "player","type": "address"}],
-    "name": "recordWin",
+    "inputs": [{"internalType": "uint256","name": "coins","type": "uint256"}],
+    "name": "addCoins",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
+    "anonymous": false,
+    "inputs": [
+      {"indexed": true,"internalType": "address","name": "player","type": "address"},
+      {"indexed": false,"internalType": "uint256","name": "coinsAdded","type": "uint256"},
+      {"indexed": false,"internalType": "uint256","name": "newTotal","type": "uint256"}
+    ],
+    "name": "CoinsAdded",
+    "type": "event"
+  },
+  {
     "inputs": [{"internalType": "uint256","name": "limit","type": "uint256"},{"internalType": "uint256","name": "offset","type": "uint256"}],
     "name": "getLeaderboard",
-    "outputs": [{"internalType": "address[]","name": "","type": "address[]"},{"internalType": "uint256[]","name": "","type": "uint256[]"},{"internalType": "uint256[]","name": "","type": "uint256[]"}],
+    "outputs": [{"internalType": "address[]","name": "addresses","type": "address[]"},{"internalType": "uint256[]","name": "coins","type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address","name": "player","type": "address"}],
+    "name": "getPlayerCoins",
+    "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPlayerCount",
+    "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256","name": "limit","type": "uint256"}],
+    "name": "getTopPlayers",
+    "outputs": [{"internalType": "address[]","name": "topAddresses","type": "address[]"},{"internalType": "uint256[]","name": "topCoins","type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address","name": "","type": "address"}],
+    "name": "hasPlayed",
+    "outputs": [{"internalType": "bool","name": "","type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256","name": "","type": "uint256"}],
+    "name": "players",
+    "outputs": [{"internalType": "address","name": "","type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address","name": "","type": "address"}],
+    "name": "totalCoins",
+    "outputs": [{"internalType": "uint256","name": "","type": "uint256"}],
     "stateMutability": "view",
     "type": "function"
   }
@@ -36,6 +90,7 @@ export default function BushidoPlatformer({ onBack }) {
   const [finalScore, setFinalScore] = useState(0);
   const [submittingScore, setSubmittingScore] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const { account } = useMetaMask();
   const gameStateRef = useRef({
       player: {
@@ -809,21 +864,27 @@ export default function BushidoPlatformer({ onBack }) {
     try {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
-      const contract = new ethers.Contract(LEADERBOARD_CONTRACT_ADDRESS, LEADERBOARD_ABI, signer);
+      const contract = new ethers.Contract(COIN_CONTRACT_ADDRESS, COIN_CONTRACT_ABI, signer);
       
-      // Record wins based on score (each 100 points = 1 win for the platformer game)
-      const wins = Math.floor(finalScore / 100) || 1; // At least 1 win for completing the game
+      // Get player's current total before adding
+      const currentTotal = await contract.getPlayerCoins(account);
       
-      for (let i = 0; i < wins; i++) {
-        const tx = await contract.recordWin(account);
-        await tx.wait();
-      }
+      // Add coins to player's cumulative total (single transaction)
+      const tx = await contract.addCoins(finalScore);
+      await tx.wait();
+      
+      // Calculate new total
+      const newTotal = Number(currentTotal) + finalScore;
       
       setScoreSubmitted(true);
-      alert(`Score submitted successfully! ${wins} win(s) recorded on the blockchain! 🎉`);
+      alert(`🎉 Score submitted successfully!\n\nThis game: ${finalScore} coins\nYour total: ${newTotal} coins\n\nYour cumulative score has been recorded on the blockchain!`);
     } catch (error) {
       console.error('Error submitting score:', error);
-      alert('Failed to submit score. Please try again.');
+      if (error.message.includes('user rejected')) {
+        alert('Transaction cancelled.');
+      } else {
+        alert('Failed to submit score. Please try again.');
+      }
     } finally {
       setSubmittingScore(false);
     }
@@ -986,6 +1047,28 @@ export default function BushidoPlatformer({ onBack }) {
               ✅ Score Submitted Successfully!
             </div>
           )}
+
+          <button
+            onClick={() => setShowLeaderboard(true)}
+            style={{
+              width: '100%',
+              fontSize: '1.3em',
+              padding: '15px',
+              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+              color: '#000',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 8px 20px rgba(255, 215, 0, 0.4)',
+              marginBottom: '15px',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            🏆 View Leaderboard
+          </button>
 
           <button
             onClick={handleRestart}
@@ -1188,6 +1271,11 @@ export default function BushidoPlatformer({ onBack }) {
           display: 'block'
         }}
       />
+
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <CoinCollectorLeaderboard onClose={() => setShowLeaderboard(false)} />
+      )}
     </div>
   );
 }
