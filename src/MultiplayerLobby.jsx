@@ -2,10 +2,20 @@ import React, { useState } from 'react';
 import { useMultiplayer } from './MultiplayerContext';
 
 export default function MultiplayerLobby({ onStartGame, onBack }) {
-  const { peerId, isHost, connected, opponentId, createRoom, joinRoom, disconnect } = useMultiplayer();
+  const { peerId, isHost, connected, opponentId, createRoom, joinRoom, disconnect, sendData, setMessageHandler } = useMultiplayer();
   const [roomCode, setRoomCode] = useState('');
   const [myRoomCode, setMyRoomCode] = useState(null);
   const [mode, setMode] = useState(null); // 'create' or 'join'
+
+  // Listen for game start signal from host
+  React.useEffect(() => {
+    setMessageHandler((data) => {
+      if (data.type === 'gameStart') {
+        console.log('Received game start signal from host');
+        onStartGame();
+      }
+    });
+  }, [setMessageHandler, onStartGame]);
 
   const handleCreateRoom = () => {
     const code = createRoom();
@@ -26,6 +36,10 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
 
   const handleStartGame = () => {
     if (connected && opponentId) {
+      // If host, notify guest to start game
+      if (isHost) {
+        sendData({ type: 'gameStart' });
+      }
       onStartGame();
     }
   };
