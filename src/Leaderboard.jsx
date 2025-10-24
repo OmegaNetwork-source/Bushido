@@ -1,13 +1,20 @@
 import React from 'react';
 import { ethers } from 'ethers';
 
-const LEADERBOARD_CONTRACT_ADDRESS = '0x8990bbf7ab7fe6bd146ddc066ca7c88773c1cc9b';
-const LEADERBOARD_ABI = [
+const BATTLE_CONTRACT_ADDRESS = '0x8990bbf7ab7fe6bd146ddc066ca7c88773c1cc9b';
+const BATTLE_ABI = [
   "function getLeaderboard(uint256 limit, uint256 offset) external view returns (address[] memory topPlayers, uint256[] memory wins, uint256[] memory losses)",
   "function getTotalPlayers() external view returns (uint256)"
 ];
 
+const COIN_CONTRACT_ADDRESS = '0x2d06d9568ae99f61f421ea99a46969878986fc2d';
+const COIN_ABI = [
+  "function getTopPlayers(uint256 limit) external view returns (address[] memory topAddresses, uint256[] memory topCoins)",
+  "function getPlayerCount() external view returns (uint256)"
+];
+
 export default function Leaderboard({ onClose }) {
+  const [activeTab, setActiveTab] = React.useState('battle'); // 'battle' or 'coins'
   const [entries, setEntries] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
 
@@ -16,22 +23,34 @@ export default function Leaderboard({ onClose }) {
       setLoading(true);
       
       try {
-        // Connect to contract using read-only provider (ethers v6)
         const provider = new ethers.JsonRpcProvider('https://api.infra.mainnet.somnia.network/');
-        const contract = new ethers.Contract(LEADERBOARD_CONTRACT_ADDRESS, LEADERBOARD_ABI, provider);
         
-        // Fetch top 100 players
-        const [addresses, wins, losses] = await contract.getLeaderboard(100, 0);
-        
-        // Format data (ethers v6 - BigInt support)
-        const scores = addresses.map((address, i) => ({
-          player: address,
-          wins: Number(wins[i]),
-          losses: Number(losses[i]),
-          score: Number(wins[i]) // Display wins as score
-        }));
-        
-        setEntries(scores);
+        if (activeTab === 'battle') {
+          // Fetch Battle leaderboard (wins/losses)
+          const contract = new ethers.Contract(BATTLE_CONTRACT_ADDRESS, BATTLE_ABI, provider);
+          const [addresses, wins, losses] = await contract.getLeaderboard(100, 0);
+          
+          const scores = addresses.map((address, i) => ({
+            player: address,
+            wins: Number(wins[i]),
+            losses: Number(losses[i]),
+            type: 'battle'
+          }));
+          
+          setEntries(scores);
+        } else {
+          // Fetch Coin Collector leaderboard (cumulative coins)
+          const contract = new ethers.Contract(COIN_CONTRACT_ADDRESS, COIN_ABI, provider);
+          const [addresses, coins] = await contract.getTopPlayers(100);
+          
+          const scores = addresses.map((address, i) => ({
+            player: address,
+            coins: Number(coins[i]),
+            type: 'coins'
+          }));
+          
+          setEntries(scores);
+        }
       } catch (error) {
         console.error('Error fetching leaderboard:', error);
         setEntries([]);
@@ -40,7 +59,7 @@ export default function Leaderboard({ onClose }) {
       setLoading(false);
     }
     fetchLeaderboard();
-  }, []);
+  }, [activeTab]);
 
   return (
     <div style={{
@@ -65,7 +84,45 @@ export default function Leaderboard({ onClose }) {
           }}
           aria-label="Close"
         >&times;</button>
-        <h2 style={{ margin: '0 0 22px 0', textAlign: 'center', letterSpacing: 1.5, fontWeight: 800, fontSize: 32, background: 'linear-gradient(90deg, #fff, #b3b3b3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Leaderboard</h2>
+        <h2 style={{ margin: '0 0 18px 0', textAlign: 'center', letterSpacing: 1.5, fontWeight: 800, fontSize: 32, background: 'linear-gradient(90deg, #fff, #b3b3b3)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Leaderboard</h2>
+        
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '22px' }}>
+          <button
+            onClick={() => setActiveTab('battle')}
+            style={{
+              padding: '10px 24px',
+              background: activeTab === 'battle' ? 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' : 'rgba(40,40,40,0.5)',
+              color: '#fff',
+              border: activeTab === 'battle' ? '2px solid #a855f7' : '2px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: activeTab === 'battle' ? '0 4px 12px rgba(168, 85, 247, 0.4)' : 'none'
+            }}
+          >
+            ⚔️ Battle
+          </button>
+          <button
+            onClick={() => setActiveTab('coins')}
+            style={{
+              padding: '10px 24px',
+              background: activeTab === 'coins' ? 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)' : 'rgba(40,40,40,0.5)',
+              color: activeTab === 'coins' ? '#000' : '#fff',
+              border: activeTab === 'coins' ? '2px solid #FFD700' : '2px solid rgba(255,255,255,0.1)',
+              borderRadius: '12px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: activeTab === 'coins' ? '0 4px 12px rgba(255, 215, 0, 0.4)' : 'none'
+            }}
+          >
+            🪙 Coin Collector
+          </button>
+        </div>
         {loading && <div style={{fontSize:18,opacity:0.8}}>Loading leaderboard...</div>}
         {!loading && !entries.length && <div style={{fontSize:18,opacity:0.8}}>No scores yet!</div>}
         {!loading && entries.length > 0 && (
@@ -74,9 +131,15 @@ export default function Leaderboard({ onClose }) {
               <tr style={{ borderBottom: '2px solid #333' }}>
                 <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>Rank</th>
                 <th style={{ textAlign: 'left', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>Player</th>
-                <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>W</th>
-                {window.innerWidth > 768 && <th style={{ textAlign: 'center', padding: '12px 8px', fontWeight: 700, fontSize: 14, letterSpacing: 1, color: '#aaa' }}>L</th>}
-                <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>W%</th>
+                {activeTab === 'battle' ? (
+                  <>
+                    <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>W</th>
+                    {window.innerWidth > 768 && <th style={{ textAlign: 'center', padding: '12px 8px', fontWeight: 700, fontSize: 14, letterSpacing: 1, color: '#aaa' }}>L</th>}
+                    <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>W%</th>
+                  </>
+                ) : (
+                  <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>Total Coins</th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -87,10 +150,8 @@ export default function Leaderboard({ onClose }) {
                 else if (i === 1) { rankColor = 'linear-gradient(90deg,#c0c0c0,#f8f8f8)'; rankEmoji = '🥈'; }
                 else if (i === 2) { rankColor = 'linear-gradient(90deg,#cd7f32,#ffe0b2)'; rankEmoji = '🥉'; }
                 
-                const totalGames = entry.wins + entry.losses;
-                const winRate = totalGames > 0 ? ((entry.wins / totalGames) * 100).toFixed(0) : 0;
-                
                 const isMobile = window.innerWidth <= 768;
+                
                 return (
                   <tr key={entry.player} style={{ 
                     background: i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)',
@@ -122,35 +183,50 @@ export default function Leaderboard({ onClose }) {
                     }}>
                       {isMobile ? `${entry.player.slice(0, 4)}...${entry.player.slice(-3)}` : `${entry.player.slice(0, 6)}...${entry.player.slice(-4)}`}
                     </td>
-                    <td style={{ 
-                      padding: isMobile ? '10px 4px' : '12px 8px', 
-                      textAlign: 'center', 
-                      fontWeight: 700,
-                      color: '#4ade80',
-                      fontSize: isMobile ? 14 : 16
-                    }}>
-                      {entry.wins}
-                    </td>
-                    {!isMobile && (
+                    
+                    {activeTab === 'battle' ? (
+                      <>
+                        <td style={{ 
+                          padding: isMobile ? '10px 4px' : '12px 8px', 
+                          textAlign: 'center', 
+                          fontWeight: 700,
+                          color: '#4ade80',
+                          fontSize: isMobile ? 14 : 16
+                        }}>
+                          {entry.wins}
+                        </td>
+                        {!isMobile && (
+                          <td style={{ 
+                            padding: '12px 8px', 
+                            textAlign: 'center', 
+                            fontWeight: 700,
+                            color: '#f87171',
+                            fontSize: 16
+                          }}>
+                            {entry.losses}
+                          </td>
+                        )}
+                        <td style={{ 
+                          padding: isMobile ? '10px 4px' : '12px 8px', 
+                          textAlign: 'center', 
+                          fontWeight: 600,
+                          fontSize: isMobile ? 12 : 14,
+                          color: ((entry.wins / (entry.wins + entry.losses)) * 100) >= 60 ? '#4ade80' : ((entry.wins / (entry.wins + entry.losses)) * 100) >= 40 ? '#fbbf24' : '#f87171'
+                        }}>
+                          {entry.wins + entry.losses > 0 ? ((entry.wins / (entry.wins + entry.losses)) * 100).toFixed(0) : 0}%
+                        </td>
+                      </>
+                    ) : (
                       <td style={{ 
-                        padding: '12px 8px', 
+                        padding: isMobile ? '10px 4px' : '12px 8px', 
                         textAlign: 'center', 
                         fontWeight: 700,
-                        color: '#f87171',
-                        fontSize: 16
+                        color: '#FFD700',
+                        fontSize: isMobile ? 14 : 16
                       }}>
-                        {entry.losses}
+                        ¥{entry.coins.toLocaleString()}
                       </td>
                     )}
-                    <td style={{ 
-                      padding: isMobile ? '10px 4px' : '12px 8px', 
-                      textAlign: 'center', 
-                      fontWeight: 600,
-                      fontSize: isMobile ? 12 : 14,
-                      color: winRate >= 60 ? '#4ade80' : winRate >= 40 ? '#fbbf24' : '#f87171'
-                    }}>
-                      {winRate}%
-                    </td>
                   </tr>
                 );
               })}
