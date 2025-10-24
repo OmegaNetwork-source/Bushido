@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useMetaMask } from './MetaMaskContext';
+import { ethers } from 'ethers';
 
 const SPRITES = {
   idle: 'https://i.postimg.cc/HrGxtnSp/sprite-1.png',
@@ -9,9 +11,32 @@ const SPRITES = {
   enemyRight: 'https://i.postimg.cc/21KVBGPL/water.png'
 };
 
+const LEADERBOARD_CONTRACT_ADDRESS = '0x8990bbf7ab7fe6bd146ddc066ca7c88773c1cc9b';
+const LEADERBOARD_ABI = [
+  {
+    "inputs": [{"internalType": "address","name": "player","type": "address"}],
+    "name": "recordWin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256","name": "limit","type": "uint256"},{"internalType": "uint256","name": "offset","type": "uint256"}],
+    "name": "getLeaderboard",
+    "outputs": [{"internalType": "address[]","name": "","type": "address[]"},{"internalType": "uint256[]","name": "","type": "uint256[]"},{"internalType": "uint256[]","name": "","type": "uint256[]"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
+
 export default function BushidoPlatformer({ onBack }) {
   const canvasRef = useRef(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
+  const [submittingScore, setSubmittingScore] = useState(false);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  const { account } = useMetaMask();
   const gameStateRef = useRef({
     player: {
       x: 100,
@@ -400,15 +425,10 @@ export default function BushidoPlatformer({ onBack }) {
           player.invincibleTimer = 60; // 1 second of invincibility (60 frames)
           
           if (player.health <= 0) {
-            // Game over - reset player
-            player.health = player.maxHealth;
-            player.x = 100;
-            player.y = 300;
-            gameState.score = 0;
-            // Reset coins
-            for (let coin of gameState.coins) {
-              coin.collected = false;
-            }
+            // Game over - stop the game
+            setGameOver(true);
+            setFinalScore(gameState.score);
+            cancelAnimationFrame(animationId);
           }
         }
         
@@ -441,15 +461,10 @@ export default function BushidoPlatformer({ onBack }) {
           player.invincibleTimer = 60; // 1 second of invincibility (60 frames)
           
           if (player.health <= 0) {
-            // Game over - reset player
-            player.health = player.maxHealth;
-            player.x = 100;
-            player.y = 300;
-            gameState.score = 0;
-            // Reset coins
-            for (let coin of gameState.coins) {
-              coin.collected = false;
-            }
+            // Game over - stop the game
+            setGameOver(true);
+            setFinalScore(gameState.score);
+            cancelAnimationFrame(animationId);
           }
         }
       }
@@ -698,6 +713,206 @@ export default function BushidoPlatformer({ onBack }) {
       window.removeEventListener('keyup', handleKeyUp);
     };
   }, [gameStarted]);
+
+  const handleSubmitScore = async () => {
+    if (!account) {
+      alert('Please connect your wallet first!');
+      return;
+    }
+
+    setSubmittingScore(true);
+    try {
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const contract = new ethers.Contract(LEADERBOARD_CONTRACT_ADDRESS, LEADERBOARD_ABI, signer);
+      
+      // Record wins based on score (each 100 points = 1 win for the platformer game)
+      const wins = Math.floor(finalScore / 100) || 1; // At least 1 win for completing the game
+      
+      for (let i = 0; i < wins; i++) {
+        const tx = await contract.recordWin(account);
+        await tx.wait();
+      }
+      
+      setScoreSubmitted(true);
+      alert(`Score submitted successfully! ${wins} win(s) recorded on the blockchain! 🎉`);
+    } catch (error) {
+      console.error('Error submitting score:', error);
+      alert('Failed to submit score. Please try again.');
+    } finally {
+      setSubmittingScore(false);
+    }
+  };
+
+  const handleRestart = () => {
+    // Reset game state
+    const gameState = gameStateRef.current;
+    gameState.player.health = gameState.player.maxHealth;
+    gameState.player.x = 100;
+    gameState.player.y = 300;
+    gameState.player.velocityX = 0;
+    gameState.player.velocityY = 0;
+    gameState.score = 0;
+    gameState.camera.x = 0;
+    gameState.camera.y = 0;
+    
+    // Reset coins
+    for (let coin of gameState.coins) {
+      coin.collected = false;
+    }
+    
+    // Reset dragons
+    gameState.dragons = [];
+    
+    setGameOver(false);
+    setFinalScore(0);
+    setScoreSubmitted(false);
+    setGameStarted(true);
+  };
+
+  // Game Over screen
+  if (gameOver) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        padding: '20px'
+      }}>
+        <div style={{
+          background: 'rgba(0,0,0,0.9)',
+          padding: '60px 50px',
+          borderRadius: '20px',
+          textAlign: 'center',
+          maxWidth: '600px',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+          border: '3px solid #e74c3c'
+        }}>
+          <h1 style={{
+            fontSize: '4em',
+            marginBottom: '20px',
+            color: '#e74c3c',
+            fontWeight: 'bold',
+            textShadow: '0 0 20px rgba(231, 76, 60, 0.8)'
+          }}>💀 GAME OVER 💀</h1>
+          
+          <div style={{
+            background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
+            padding: '30px',
+            borderRadius: '15px',
+            marginBottom: '30px',
+            border: '3px solid #FF8C00'
+          }}>
+            <h2 style={{
+              fontSize: '2em',
+              color: '#000',
+              marginBottom: '10px'
+            }}>Final Score</h2>
+            <p style={{
+              fontSize: '4em',
+              color: '#000',
+              fontWeight: 'bold',
+              margin: 0
+            }}>¥{finalScore}</p>
+          </div>
+
+          <p style={{
+            fontSize: '1.3em',
+            color: '#fff',
+            marginBottom: '30px',
+            lineHeight: '1.6'
+          }}>
+            You collected <strong style={{ color: '#FFD700' }}>{finalScore}</strong> coins! 🪙
+            <br />
+            {account ? 'Submit your score to the blockchain leaderboard!' : 'Connect your wallet to submit your score!'}
+          </p>
+
+          {account && !scoreSubmitted && (
+            <button
+              onClick={handleSubmitScore}
+              disabled={submittingScore}
+              style={{
+                width: '100%',
+                fontSize: '1.5em',
+                padding: '20px',
+                background: submittingScore 
+                  ? '#95a5a6' 
+                  : 'linear-gradient(135deg, #00d4ff 0%, #a855f7 100%)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '12px',
+                fontWeight: 'bold',
+                cursor: submittingScore ? 'not-allowed' : 'pointer',
+                boxShadow: '0 8px 20px rgba(0, 212, 255, 0.4)',
+                marginBottom: '15px',
+                transition: 'transform 0.2s'
+              }}
+              onMouseEnter={(e) => !submittingScore && (e.target.style.transform = 'scale(1.05)')}
+              onMouseLeave={(e) => !submittingScore && (e.target.style.transform = 'scale(1)')}
+            >
+              {submittingScore ? '⏳ Submitting to Blockchain...' : '🏆 Submit Score to Leaderboard'}
+            </button>
+          )}
+
+          {scoreSubmitted && (
+            <div style={{
+              background: 'rgba(46, 204, 113, 0.2)',
+              border: '2px solid #2ecc71',
+              borderRadius: '10px',
+              padding: '15px',
+              marginBottom: '15px',
+              color: '#2ecc71',
+              fontSize: '1.2em',
+              fontWeight: 'bold'
+            }}>
+              ✅ Score Submitted Successfully!
+            </div>
+          )}
+
+          <button
+            onClick={handleRestart}
+            style={{
+              width: '100%',
+              fontSize: '1.3em',
+              padding: '15px',
+              background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 8px 20px rgba(46, 204, 113, 0.4)',
+              marginBottom: '15px',
+              transition: 'transform 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            🔄 Play Again
+          </button>
+
+          <button
+            onClick={onBack}
+            style={{
+              width: '100%',
+              fontSize: '1em',
+              padding: '12px',
+              background: '#95a5a6',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            ← Back to Menu
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (!gameStarted) {
     return (
