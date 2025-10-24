@@ -101,7 +101,7 @@ export default function BushidoPlatformer({ onBack }) {
       velocityX: 0,
       velocityY: 0,
       speed: 5,
-      jumpPower: 18, // Increased for better jumping
+      jumpPower: 22, // Higher jump power for reaching spread out platforms
       onGround: false,
       facingRight: true,
       state: 'idle', // idle, running, jumping
@@ -123,18 +123,22 @@ export default function BushidoPlatformer({ onBack }) {
         { x: 0, y: 650, width: 50000, height: 50, color: '#5a5a5a', type: 'ground' }
       ];
       
-      // Generate platforms with reachable heights (ground is at 650)
-      let x = 300;
+      // Generate platforms with varied heights spread across the screen (ground is at 650)
+      let x = 400;
       while (x < 50000) {
-        // Heights all within jumping distance from ground and each other
-        // Max vertical gap is 40 pixels between levels
-        const heights = [480, 500, 520, 540, 560, 580, 600];
+        // Wide range of heights from high to low - creating a staircase effect
+        const heights = [
+          300, 320, 340, 360, 380, // High platforms
+          400, 420, 440, 460, 480, // Upper-mid platforms
+          500, 520, 540, 560, 580, // Lower-mid platforms
+          600, 620 // Low platforms (close to ground)
+        ];
         const colors = ['#8B4513', '#D2691E', '#CD853F'];
         
-        // Random platform size
-        const width = Math.floor(Math.random() * 100 + 120); // 120-220 width
+        // Varied platform sizes
+        const width = Math.floor(Math.random() * 120 + 100); // 100-220 width
         
-        // Pick a random height - all are reachable
+        // Pick random height for maximum variety
         const y = heights[Math.floor(Math.random() * heights.length)];
         
         platforms.push({
@@ -146,17 +150,17 @@ export default function BushidoPlatformer({ onBack }) {
           type: 'wood'
         });
         
-        // Horizontal spacing - keep closer for better gameplay
+        // Wider horizontal spacing for better spread
         const spacingType = Math.random();
-        if (spacingType < 0.4) {
-          // Close together - easy section
-          x += Math.random() * 80 + 150; // 150-230 pixels
-        } else if (spacingType < 0.8) {
+        if (spacingType < 0.3) {
+          // Close clusters
+          x += Math.random() * 100 + 180; // 180-280 pixels
+        } else if (spacingType < 0.6) {
           // Medium spacing
-          x += Math.random() * 120 + 220; // 220-340 pixels
+          x += Math.random() * 150 + 280; // 280-430 pixels
         } else {
-          // Wider gaps - challenging but still doable
-          x += Math.random() * 150 + 300; // 300-450 pixels
+          // Wide gaps for challenge
+          x += Math.random() * 200 + 400; // 400-600 pixels
         }
       }
       
@@ -164,25 +168,32 @@ export default function BushidoPlatformer({ onBack }) {
     })(),
     coins: (() => {
       const coins = [];
-      // Generate coins at reachable heights (matching platform zones)
-      let x = 200;
+      // Generate coins at varied heights throughout the level
+      let x = 250;
       while (x < 50000) {
-        // Coin heights that match platform levels and in-between
-        const heights = [420, 450, 480, 510, 540, 570, 600, 630];
+        // Coin heights matching the wide range of platform heights
+        const heights = [
+          280, 300, 320, 340, 360, 380, // High coins
+          400, 420, 440, 460, 480, 500, // Mid-high coins
+          520, 540, 560, 580, 600, 620, 640 // Mid-low coins
+        ];
         coins.push({
           x: Math.floor(x),
           y: heights[Math.floor(Math.random() * heights.length)],
           collected: false
         });
         
-        // Varied coin spacing - sometimes clusters, sometimes spread out
+        // Varied coin spacing matching platform spread
         const spacingType = Math.random();
-        if (spacingType < 0.4) {
+        if (spacingType < 0.3) {
           // Close together - trail of coins
-          x += Math.random() * 80 + 100; // 100-180 pixels
+          x += Math.random() * 100 + 120; // 120-220 pixels
+        } else if (spacingType < 0.6) {
+          // Medium spread
+          x += Math.random() * 150 + 220; // 220-370 pixels
         } else {
-          // Spread out
-          x += Math.random() * 200 + 200; // 200-400 pixels
+          // Wide spread
+          x += Math.random() * 200 + 350; // 350-550 pixels
         }
       }
       return coins;
@@ -682,25 +693,6 @@ export default function BushidoPlatformer({ onBack }) {
         }
       }
       
-      // Draw torii gates throughout the level (darker at night)
-      for (let toriiX = 600; toriiX < 50000; toriiX += 800) {
-        // Torii gate pillars
-        ctx.fillStyle = lerpColor('#CD5C5C', '#6A2E2E', cycle);
-        ctx.fillRect(toriiX, 550, 15, 100);
-        ctx.fillRect(toriiX + 100, 550, 15, 100);
-        
-        // Top horizontal beam
-        ctx.fillStyle = lerpColor('#CD5C5C', '#6A2E2E', cycle);
-        ctx.fillRect(toriiX - 10, 540, 135, 12);
-        
-        // Second beam
-        ctx.fillRect(toriiX + 5, 565, 105, 8);
-        
-        // Black caps
-        ctx.fillStyle = lerpColor('#2C2C2C', '#0a0a0a', cycle);
-        ctx.fillRect(toriiX - 12, 536, 139, 6);
-      }
-
       // Draw and collect Japanese-style coins
       for (let coin of gameState.coins) {
         if (!coin.collected) {
