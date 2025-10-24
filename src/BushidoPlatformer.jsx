@@ -101,7 +101,7 @@ export default function BushidoPlatformer({ onBack }) {
       velocityX: 0,
       velocityY: 0,
       speed: 5,
-      jumpPower: 15,
+      jumpPower: 18, // Increased for better jumping
       onGround: false,
       facingRight: true,
       state: 'idle', // idle, running, jumping
@@ -123,17 +123,18 @@ export default function BushidoPlatformer({ onBack }) {
         { x: 0, y: 650, width: 50000, height: 50, color: '#5a5a5a', type: 'ground' }
       ];
       
-      // Generate platforms with more varied spacing and heights
+      // Generate platforms with reachable heights (ground is at 650)
       let x = 300;
       while (x < 50000) {
-        // More height options for variety (from high in sky to low near ground)
-        const heights = [280, 320, 360, 400, 440, 480, 520, 560, 600];
+        // Heights all within jumping distance from ground and each other
+        // Max vertical gap is 40 pixels between levels
+        const heights = [480, 500, 520, 540, 560, 580, 600];
         const colors = ['#8B4513', '#D2691E', '#CD853F'];
         
-        // Random platform size with more variety
-        const width = Math.floor(Math.random() * 120 + 100); // 100-220 width
+        // Random platform size
+        const width = Math.floor(Math.random() * 100 + 120); // 120-220 width
         
-        // Pick a random height
+        // Pick a random height - all are reachable
         const y = heights[Math.floor(Math.random() * heights.length)];
         
         platforms.push({
@@ -145,17 +146,17 @@ export default function BushidoPlatformer({ onBack }) {
           type: 'wood'
         });
         
-        // More varied spacing - sometimes close, sometimes far apart
+        // Horizontal spacing - keep closer for better gameplay
         const spacingType = Math.random();
-        if (spacingType < 0.3) {
-          // Close together - cluster of platforms
-          x += Math.random() * 100 + 150; // 150-250 pixels
-        } else if (spacingType < 0.7) {
+        if (spacingType < 0.4) {
+          // Close together - easy section
+          x += Math.random() * 80 + 150; // 150-230 pixels
+        } else if (spacingType < 0.8) {
           // Medium spacing
-          x += Math.random() * 150 + 250; // 250-400 pixels
+          x += Math.random() * 120 + 220; // 220-340 pixels
         } else {
-          // Wide gaps - challenging jumps
-          x += Math.random() * 200 + 350; // 350-550 pixels
+          // Wider gaps - challenging but still doable
+          x += Math.random() * 150 + 300; // 300-450 pixels
         }
       }
       
@@ -163,11 +164,11 @@ export default function BushidoPlatformer({ onBack }) {
     })(),
     coins: (() => {
       const coins = [];
-      // Generate coins with varied spacing to match platform variety
+      // Generate coins at reachable heights (matching platform zones)
       let x = 200;
       while (x < 50000) {
-        // Coin heights that don't overlap with platform zones
-        const heights = [230, 270, 310, 350, 390, 430, 470, 510, 550, 590, 620];
+        // Coin heights that match platform levels and in-between
+        const heights = [420, 450, 480, 510, 540, 570, 600, 630];
         coins.push({
           x: Math.floor(x),
           y: heights[Math.floor(Math.random() * heights.length)],
