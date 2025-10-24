@@ -52,6 +52,8 @@ export default function Leaderboard({ onClose }) {
           try {
             const [addresses, coins] = await contract.getTopPlayers(100);
             console.log('Raw coin data - addresses:', addresses.length, 'coins:', coins.length);
+            console.log('First 3 addresses:', addresses.slice(0, 3));
+            console.log('First 3 coin values:', coins.slice(0, 3).map(c => Number(c)));
             
             // Filter out players with 0 coins
             const scores = addresses
@@ -63,6 +65,7 @@ export default function Leaderboard({ onClose }) {
               .filter(entry => entry.coins > 0);
             
             console.log('Coin scores (filtered):', scores.length);
+            console.log('First coin entry:', scores[0]);
             setEntries(scores);
           } catch (err) {
             console.error('Error fetching Coin Collector leaderboard:', err);
@@ -237,8 +240,8 @@ export default function Leaderboard({ onClose }) {
             🎮 No scores yet! Be the first to play!
           </div>
         )}
-        {!loading && entries.length > 0 && (
-          <table style={{ width: '100%', background: 'transparent', color: '#fff', borderRadius: 12, fontSize: 16, fontWeight: 500, borderCollapse: 'separate', borderSpacing: 0 }}>
+        {!loading && !error && entries.length > 0 && (
+          <table key={activeTab} style={{ width: '100%', background: 'transparent', color: '#fff', borderRadius: 12, fontSize: 16, fontWeight: 500, borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #333' }}>
                 <th style={{ textAlign: 'center', padding: window.innerWidth > 768 ? '12px 8px' : '10px 4px', fontWeight: 700, fontSize: window.innerWidth > 768 ? 14 : 12, letterSpacing: 1, color: '#aaa' }}>Rank</th>
@@ -296,7 +299,7 @@ export default function Leaderboard({ onClose }) {
                       {isMobile ? `${entry.player.slice(0, 4)}...${entry.player.slice(-3)}` : `${entry.player.slice(0, 6)}...${entry.player.slice(-4)}`}
                     </td>
                     
-                    {activeTab === 'battle' ? (
+                    {activeTab === 'battle' && entry.type === 'battle' ? (
                       <>
                         <td style={{ 
                           padding: isMobile ? '10px 4px' : '12px 8px', 
@@ -305,7 +308,7 @@ export default function Leaderboard({ onClose }) {
                           color: '#4ade80',
                           fontSize: isMobile ? 14 : 16
                         }}>
-                          {entry.wins}
+                          {entry.wins || 0}
                         </td>
                         {!isMobile && (
                           <td style={{ 
@@ -315,7 +318,7 @@ export default function Leaderboard({ onClose }) {
                             color: '#f87171',
                             fontSize: 16
                           }}>
-                            {entry.losses}
+                            {entry.losses || 0}
                           </td>
                         )}
                         <td style={{ 
@@ -328,7 +331,7 @@ export default function Leaderboard({ onClose }) {
                           {entry.wins + entry.losses > 0 ? ((entry.wins / (entry.wins + entry.losses)) * 100).toFixed(0) : 0}%
                         </td>
                       </>
-                    ) : (
+                    ) : activeTab === 'coins' && entry.type === 'coins' ? (
                       <td style={{ 
                         padding: isMobile ? '10px 4px' : '12px 8px', 
                         textAlign: 'center', 
@@ -336,7 +339,11 @@ export default function Leaderboard({ onClose }) {
                         color: '#FFD700',
                         fontSize: isMobile ? 14 : 16
                       }}>
-                        ¥{entry.coins.toLocaleString()}
+                        ¥{(entry.coins || 0).toLocaleString()}
+                      </td>
+                    ) : (
+                      <td style={{ padding: isMobile ? '10px 4px' : '12px 8px', textAlign: 'center', color: '#f87171' }}>
+                        Error: Invalid entry
                       </td>
                     )}
                   </tr>
