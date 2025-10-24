@@ -15,7 +15,10 @@ export const MultiplayerProvider = ({ children }) => {
 
   // Initialize peer
   useEffect(() => {
-    const newPeer = new Peer({
+    console.log('Initializing PeerJS...');
+    
+    const newPeer = new Peer(undefined, {
+      debug: 2, // Enable debug logging
       config: {
         iceServers: [
           { urls: 'stun:stun.l.google.com:19302' },
@@ -24,27 +27,61 @@ export const MultiplayerProvider = ({ children }) => {
       }
     });
 
+    // Timeout to detect initialization failures
+    let isInitialized = false;
+    const timeout = setTimeout(() => {
+      if (!isInitialized) {
+        console.warn('PeerJS initialization timeout');
+        setPeerId('initializing-failed');
+      }
+    }, 10000);
+
     newPeer.on('open', (id) => {
-      console.log('My peer ID:', id);
+      console.log('✅ PeerJS connected! My peer ID:', id);
+      isInitialized = true;
+      clearTimeout(timeout);
       setPeerId(id);
     });
 
     newPeer.on('connection', (conn) => {
-      console.log('Incoming connection from:', conn.peer);
+      console.log('📥 Incoming connection from:', conn.peer);
       setConnection(conn);
       setOpponentId(conn.peer);
       setupConnectionHandlers(conn);
     });
 
+    newPeer.on('disconnected', () => {
+      console.warn('⚠️ Peer disconnected, attempting to reconnect...');
+      newPeer.reconnect();
+    });
+
     newPeer.on('error', (err) => {
-      console.error('Peer error:', err);
-      alert('Connection error: ' + err.type);
+      console.error('❌ Peer error:', err);
+      isInitialized = true; // Prevent timeout from also showing error
+      clearTimeout(timeout);
+      if (err.type === 'peer-unavailable') {
+        alert('Room code not found. Please check the code and try again.');
+      } else if (err.type === 'network') {
+        alert('Network error. Please check your internet connection.');
+        setPeerId('initializing-failed');
+      } else if (err.type === 'unavailable-id') {
+        // Peer ID already taken, will auto-retry
+        console.log('Peer ID unavailable, retrying...');
+      } else if (err.type === 'server-error') {
+        alert('PeerJS server error. Please try again later.');
+        setPeerId('initializing-failed');
+      } else {
+        alert('Connection error: ' + err.type);
+      }
     });
 
     setPeer(newPeer);
 
     return () => {
-      newPeer.destroy();
+      clearTimeout(timeout);
+      if (newPeer) {
+        newPeer.destroy();
+      }
     };
   }, []);
 

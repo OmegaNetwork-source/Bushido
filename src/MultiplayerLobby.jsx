@@ -69,8 +69,37 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
           </p>
 
           {!peerId ? (
-            <div style={{ fontSize: '1.2em', color: '#666' }}>
-              🔄 Connecting to network...
+            <div>
+              <div style={{ fontSize: '1.2em', color: '#666', marginBottom: '20px' }}>
+                🔄 Connecting to network...
+              </div>
+              <p style={{ fontSize: '0.9em', color: '#999' }}>
+                This may take a few seconds. If it takes longer than 10 seconds, try refreshing the page.
+              </p>
+            </div>
+          ) : peerId === 'initializing-failed' ? (
+            <div>
+              <div style={{ fontSize: '1.2em', color: '#e74c3c', marginBottom: '20px' }}>
+                ❌ Connection failed
+              </div>
+              <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '20px' }}>
+                Unable to connect to the multiplayer network. This could be due to a firewall or network issue.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                style={{
+                  padding: '15px 30px',
+                  background: '#3498db',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '1.1em',
+                  fontWeight: 'bold'
+                }}
+              >
+                🔄 Retry Connection
+              </button>
             </div>
           ) : (
             <>
