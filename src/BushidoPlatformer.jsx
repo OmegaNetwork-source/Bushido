@@ -192,7 +192,9 @@ export default function BushidoPlatformer({ onBack }) {
     enemies: [],
     score: 0,
     sprites: {},
-    spritesLoaded: false
+    spritesLoaded: false,
+    gameTime: 0, // Track elapsed time in seconds for day/night cycle
+    dayNightCycle: 0 // 0 = day, transitioning to 1 = night, back to 0
   });
 
   // Scroll to top when component mounts
@@ -323,15 +325,43 @@ export default function BushidoPlatformer({ onBack }) {
       const deltaTime = (timestamp - lastTime) / 16.67; // Normalize to 60fps
       lastTime = timestamp;
 
+      // Update game time for day/night cycle (60 seconds = 1 cycle phase)
+      gameState.gameTime += deltaTime / 60; // Increment based on frames
+      // Calculate day/night cycle: 0 = day, 0.5 = transition, 1 = night, 1.5 = transition, 2 = day (repeats)
+      const cyclePhase = (gameState.gameTime / 60) % 2; // 2 minute cycle (1 min day, 1 min night)
+      // Convert to smooth 0-1-0 pattern
+      gameState.dayNightCycle = cyclePhase <= 1 ? cyclePhase : 2 - cyclePhase;
+
       const player = gameState.player;
       const camera = gameState.camera;
+      
+      // Helper function to interpolate colors
+      const lerpColor = (color1, color2, t) => {
+        const hex1 = color1.replace('#', '');
+        const hex2 = color2.replace('#', '');
+        const r1 = parseInt(hex1.substr(0, 2), 16);
+        const g1 = parseInt(hex1.substr(2, 2), 16);
+        const b1 = parseInt(hex1.substr(4, 2), 16);
+        const r2 = parseInt(hex2.substr(0, 2), 16);
+        const g2 = parseInt(hex2.substr(2, 2), 16);
+        const b2 = parseInt(hex2.substr(4, 2), 16);
+        const r = Math.round(r1 + (r2 - r1) * t);
+        const g = Math.round(g1 + (g2 - g1) * t);
+        const b = Math.round(b1 + (b2 - b1) * t);
+        return `rgb(${r},${g},${b})`;
+      };
 
-      // Draw anime-style Japanese sky (sunset gradient)
+      // Day/night cycle colors
+      const dayColors = ['#FFB6C1', '#FFA07A', '#FFD700', '#FF8C69']; // Pink, salmon, gold, coral
+      const nightColors = ['#0a0e27', '#1a1a3e', '#2d2d5f', '#1a1a2e']; // Dark blue/purple night
+      const cycle = gameState.dayNightCycle;
+
+      // Draw sky with day/night transition
       const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      gradient.addColorStop(0, '#FFB6C1'); // Pink
-      gradient.addColorStop(0.3, '#FFA07A'); // Light salmon
-      gradient.addColorStop(0.6, '#FFD700'); // Gold
-      gradient.addColorStop(1, '#FF8C69'); // Coral
+      gradient.addColorStop(0, lerpColor(dayColors[0], nightColors[0], cycle));
+      gradient.addColorStop(0.3, lerpColor(dayColors[1], nightColors[1], cycle));
+      gradient.addColorStop(0.6, lerpColor(dayColors[2], nightColors[2], cycle));
+      gradient.addColorStop(1, lerpColor(dayColors[3], nightColors[3], cycle));
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -340,8 +370,8 @@ export default function BushidoPlatformer({ onBack }) {
       ctx.translate(-camera.x * 0.3, 0);
       
       for (let mountainX = 0; mountainX < 60000; mountainX += 1500) {
-        // Far mountain
-        ctx.fillStyle = '#4B0082';
+        // Far mountain (transitions color)
+        ctx.fillStyle = lerpColor('#4B0082', '#1a1a2e', cycle);
         ctx.globalAlpha = 0.4;
         ctx.beginPath();
         ctx.moveTo(mountainX + 200, 400);
@@ -350,9 +380,9 @@ export default function BushidoPlatformer({ onBack }) {
         ctx.closePath();
         ctx.fill();
         
-        // Mount Fuji
+        // Mount Fuji (transitions color)
         ctx.globalAlpha = 0.6;
-        ctx.fillStyle = '#2F4F4F';
+        ctx.fillStyle = lerpColor('#2F4F4F', '#0f1f2f', cycle);
         ctx.beginPath();
         ctx.moveTo(mountainX + 300, 450);
         ctx.lineTo(mountainX + 500, 150);
@@ -360,8 +390,8 @@ export default function BushidoPlatformer({ onBack }) {
         ctx.closePath();
         ctx.fill();
         
-        // Snow cap
-        ctx.fillStyle = '#FFFFFF';
+        // Snow cap (stays white but can dim slightly at night)
+        ctx.fillStyle = lerpColor('#FFFFFF', '#b0b0c0', cycle);
         ctx.globalAlpha = 0.8;
         ctx.beginPath();
         ctx.moveTo(mountainX + 450, 200);
@@ -382,12 +412,12 @@ export default function BushidoPlatformer({ onBack }) {
       
       // Generate trees every 300 pixels
       for (let treeX = 100; treeX < 60000; treeX += 300) {
-        // Tree trunk
-        ctx.fillStyle = '#654321';
+        // Tree trunk (darkens at night)
+        ctx.fillStyle = lerpColor('#654321', '#2d1810', cycle);
         ctx.fillRect(treeX, 500, 20, 150);
         
-        // Cherry blossom foliage
-        ctx.fillStyle = '#FFB7C5';
+        // Cherry blossom foliage (darker at night)
+        ctx.fillStyle = lerpColor('#FFB7C5', '#8B5A6B', cycle);
         ctx.globalAlpha = 0.8;
         ctx.beginPath();
         ctx.arc(treeX + 10, 480, 50, 0, Math.PI * 2);
@@ -417,7 +447,7 @@ export default function BushidoPlatformer({ onBack }) {
         const petalX = viewportStart + ((petalBaseX + Math.sin(time + i) * 50) % (viewportEnd - viewportStart));
         const petalY = ((time * 30 + i * 40) % 600);
         
-        ctx.fillStyle = '#FFB7C5';
+        ctx.fillStyle = lerpColor('#FFB7C5', '#8B5A6B', cycle);
         ctx.globalAlpha = 0.7;
         ctx.save();
         ctx.translate(petalX, petalY);
@@ -652,22 +682,22 @@ export default function BushidoPlatformer({ onBack }) {
         }
       }
       
-      // Draw torii gates throughout the level
+      // Draw torii gates throughout the level (darker at night)
       for (let toriiX = 600; toriiX < 50000; toriiX += 800) {
         // Torii gate pillars
-        ctx.fillStyle = '#CD5C5C';
+        ctx.fillStyle = lerpColor('#CD5C5C', '#6A2E2E', cycle);
         ctx.fillRect(toriiX, 550, 15, 100);
         ctx.fillRect(toriiX + 100, 550, 15, 100);
         
         // Top horizontal beam
-        ctx.fillStyle = '#CD5C5C';
+        ctx.fillStyle = lerpColor('#CD5C5C', '#6A2E2E', cycle);
         ctx.fillRect(toriiX - 10, 540, 135, 12);
         
         // Second beam
         ctx.fillRect(toriiX + 5, 565, 105, 8);
         
         // Black caps
-        ctx.fillStyle = '#2C2C2C';
+        ctx.fillStyle = lerpColor('#2C2C2C', '#0a0a0a', cycle);
         ctx.fillRect(toriiX - 12, 536, 139, 6);
       }
 
@@ -906,6 +936,8 @@ export default function BushidoPlatformer({ onBack }) {
     gameState.score = 0;
     gameState.camera.x = 0;
     gameState.camera.y = 0;
+    gameState.gameTime = 0; // Reset day/night cycle
+    gameState.dayNightCycle = 0;
     
     // Reset coins
     for (let coin of gameState.coins) {
