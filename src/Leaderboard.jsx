@@ -17,12 +17,14 @@ export default function Leaderboard({ onClose }) {
   const [activeTab, setActiveTab] = React.useState('battle'); // 'battle' or 'coins'
   const [entries, setEntries] = React.useState([]);
   const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
     async function fetchLeaderboard() {
       console.log('Fetching leaderboard for tab:', activeTab);
       setLoading(true);
       setEntries([]); // Clear entries before fetching
+      setError(null); // Clear previous errors
       
       try {
         const provider = new ethers.JsonRpcProvider('https://api.infra.mainnet.somnia.network/');
@@ -46,25 +48,44 @@ export default function Leaderboard({ onClose }) {
           // Fetch Coin Collector leaderboard (cumulative coins)
           console.log('Fetching Coin Collector leaderboard...');
           const contract = new ethers.Contract(COIN_CONTRACT_ADDRESS, COIN_ABI, provider);
-          const [addresses, coins] = await contract.getTopPlayers(100);
           
-          const scores = addresses.map((address, i) => ({
-            player: address,
-            coins: Number(coins[i]),
-            type: 'coins'
-          }));
-          
-          console.log('Coin scores:', scores.length);
-          setEntries(scores);
+          try {
+            const [addresses, coins] = await contract.getTopPlayers(100);
+            console.log('Raw coin data - addresses:', addresses.length, 'coins:', coins.length);
+            
+            // Filter out players with 0 coins
+            const scores = addresses
+              .map((address, i) => ({
+                player: address,
+                coins: Number(coins[i]),
+                type: 'coins'
+              }))
+              .filter(entry => entry.coins > 0);
+            
+            console.log('Coin scores (filtered):', scores.length);
+            setEntries(scores);
+          } catch (err) {
+            console.error('Error fetching Coin Collector leaderboard:', err);
+            setError('Failed to load Coin Collector leaderboard');
+            setEntries([]);
+          }
         }
       } catch (error) {
         console.error('Error fetching leaderboard:', error);
+        setError(`Failed to load ${activeTab} leaderboard`);
         setEntries([]);
       }
       
       setLoading(false);
     }
-    fetchLeaderboard();
+    
+    try {
+      fetchLeaderboard();
+    } catch (err) {
+      console.error('Critical error in fetchLeaderboard:', err);
+      setError('Critical error loading leaderboard');
+      setLoading(false);
+    }
   }, [activeTab]);
 
   return (
@@ -170,7 +191,40 @@ export default function Leaderboard({ onClose }) {
             ⏳ Loading leaderboard...
           </div>
         )}
-        {!loading && !entries.length && (
+        {error && (
+          <div style={{
+            fontSize: 18, 
+            color: '#f87171', 
+            padding: '30px 20px',
+            fontWeight: 600,
+            background: 'rgba(248, 113, 113, 0.1)',
+            borderRadius: '12px',
+            border: '2px solid rgba(248, 113, 113, 0.3)',
+            marginBottom: '20px'
+          }}>
+            ⚠️ {error}
+            <br />
+            <button
+              onClick={() => {
+                setError(null);
+                setActiveTab(activeTab); // Force re-fetch
+              }}
+              style={{
+                marginTop: '15px',
+                padding: '10px 20px',
+                background: '#f87171',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        {!loading && !error && !entries.length && (
           <div style={{
             fontSize: 20, 
             color: '#a855f7', 
