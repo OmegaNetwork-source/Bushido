@@ -66,53 +66,58 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '20px',
-        background: 'linear-gradient(90deg, #2d0a0a 0%, #0a0a2e 50%, #0a1a2d 100%)'
+        background: 'linear-gradient(110deg, #181d31 0%, #2b2d42 100%)',
       }}>
         <div style={{
-          background: 'rgba(255,255,255,0.95)',
-          padding: '50px 40px',
-          borderRadius: '20px',
-          maxWidth: '500px',
+          background: 'linear-gradient(135deg, #3a245d 0%, #432371 38%, #2980b9 100%)',
+          borderRadius: '26px',
+          padding: window.innerWidth > 800 ? '58px 56px 42px' : '34px 17px 28px',
+          maxWidth: 510,
           width: '100%',
           textAlign: 'center',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+          boxShadow: '0 8px 54px 0 #201153b0, 0 0 0 2px #a855f754',
+          border: '2.5px solid #a855f7',
+          position: 'relative',
         }}>
-          <h1 style={{ fontSize: '2.5em', marginBottom: '10px', color: '#333' }}>⚔️ Multiplayer</h1>
-          <p style={{ color: '#666', marginBottom: '40px', fontSize: '1.1em' }}>
+          <div style={{ fontSize: '2.7em', color: '#fff', fontWeight: 900, letterSpacing: 2, fontFamily: 'Montserrat, Inter, Arial', textTransform: 'uppercase', marginBottom: 8, textShadow: '0 2px 16px #533483aa' }}>Multiplayer</div>
+          <p style={{ color: '#aacfff', margin: '0 0 40px 0', fontSize: '1.19em', fontWeight: 600, letterSpacing: 0.6, textShadow: '0 1px 7px #16213e90' }}>
             Play against a friend in real-time!
           </p>
 
           {!peerId ? (
             <div>
-              <div style={{ fontSize: '1.2em', color: '#666', marginBottom: '20px' }}>
-                🔄 Connecting to network...
+              <div style={{ fontSize: '1.2em', color: '#d3d9f1', marginBottom: '20px', fontWeight: 700 }}>
+                Connecting to network...
               </div>
-              <p style={{ fontSize: '0.9em', color: '#999' }}>
+              <p style={{ fontSize: '0.98em', color: '#9cbcf0', marginBottom: 0 }}>
                 This may take a few seconds. If it takes longer than 10 seconds, try refreshing the page.
               </p>
             </div>
           ) : peerId === 'initializing-failed' ? (
             <div>
-              <div style={{ fontSize: '1.2em', color: '#e74c3c', marginBottom: '20px' }}>
-                ❌ Connection failed
+              <div style={{ fontSize: '1.16em', color: '#fd6c6c', marginBottom: '20px', fontWeight: 'bold' }}>
+                Connection failed
               </div>
-              <p style={{ fontSize: '0.9em', color: '#666', marginBottom: '20px' }}>
+              <p style={{ fontSize: '1em', color: '#d3d9f1', marginBottom: '23px' }}>
                 Unable to connect to the multiplayer network. This could be due to a firewall or network issue.
               </p>
               <button
                 onClick={() => window.location.reload()}
                 style={{
-                  padding: '15px 30px',
-                  background: '#3498db',
+                  padding: '16px 36px',
+                  background: 'linear-gradient(90deg, #ff757c 0%, #6bbfff 100%)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '8px',
+                  fontSize: '1.13em',
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 16px #5c258dd0',
                   cursor: 'pointer',
-                  fontSize: '1.1em',
-                  fontWeight: 'bold'
+                  letterSpacing: 1,
+                  marginBottom: 4,
                 }}
               >
-                🔄 Retry Connection
+                Retry Connection
               </button>
             </div>
           ) : (
@@ -121,25 +126,26 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
                 onClick={handleCreateRoom}
                 style={{
                   width: '100%',
-                  fontSize: '1.3em',
-                  padding: '20px',
+                  fontSize: '1.22em',
+                  padding: '22px',
                   marginBottom: '20px',
-                  background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                  background: 'linear-gradient(90deg, #a855f7 0%, #ec4899 100%)',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '12px',
+                  borderRadius: '13px',
                   fontWeight: 'bold',
+                  letterSpacing: 1,
                   cursor: 'pointer',
-                  boxShadow: '0 5px 15px rgba(231,76,60,0.4)',
-                  transition: 'all 0.3s'
+                  boxShadow: '0 5px 14px #a855f74a',
+                  transition: 'all 0.22s',
                 }}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-3px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                onMouseEnter={e => e.target.style.transform = 'scale(1.023)'}
+                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
               >
-                🎮 Create Room
+                Create Room
               </button>
 
-              <div style={{ margin: '30px 0', color: '#999', fontSize: '1.1em', fontWeight: 'bold' }}>
+              <div style={{ margin: '30px 0', color: '#dfa8ff', fontSize: '1.15em', fontWeight: 'bold', letterSpacing: 3, textTransform: 'uppercase', textShadow: '0 0 7px #a855f744' }}>
                 OR
               </div>
 
@@ -147,17 +153,23 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
                 type="text"
                 placeholder="Enter room code..."
                 value={roomCode}
-                onChange={(e) => setRoomCode(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleJoinRoom()}
+                onChange={e => setRoomCode(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && handleJoinRoom()}
                 style={{
                   width: '100%',
-                  fontSize: '1.1em',
+                  fontSize: '1.01em',
                   padding: '15px',
-                  marginBottom: '15px',
-                  border: '2px solid #ddd',
-                  borderRadius: '10px',
+                  marginBottom: '16px',
+                  border: '2px solid #cfbafb',
+                  borderRadius: '11px',
                   textAlign: 'center',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  background:'#27315c',
+                  color: '#fff',
+                  fontFamily: 'Montserrat, Arial, sans-serif',
+                  fontWeight: 600,
+                  outline: 'none',
+                  letterSpacing: 0.7,
                 }}
               />
 
@@ -165,39 +177,46 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
                 onClick={handleJoinRoom}
                 style={{
                   width: '100%',
-                  fontSize: '1.3em',
-                  padding: '20px',
-                  background: 'linear-gradient(135deg, #3498db 0%, #2980b9 100%)',
+                  fontSize: '1.22em',
+                  padding: '22px',
+                  background: 'linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%)',
                   color: '#fff',
                   border: 'none',
-                  borderRadius: '12px',
+                  borderRadius: '13px',
                   fontWeight: 'bold',
+                  letterSpacing: 1,
                   cursor: 'pointer',
-                  boxShadow: '0 5px 15px rgba(52,152,219,0.4)',
-                  transition: 'all 0.3s'
+                  boxShadow: '0 5px 14px #3b238e38',
+                  marginBottom: 6,
+                  transition: 'all 0.22s',
                 }}
-                onMouseEnter={(e) => e.target.style.transform = 'translateY(-3px)'}
-                onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                onMouseEnter={e => e.target.style.transform = 'scale(1.023)'}
+                onMouseLeave={e => e.target.style.transform = 'scale(1)'}
               >
-                🔗 Join Room
+                Join Room
               </button>
             </>
           )}
 
           <button
-            onClick={onBack}
+            onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/' }
             style={{
               width: '100%',
-              fontSize: '1em',
-              padding: '12px',
+              fontSize: '1.1em',
+              padding: '14px',
               marginTop: '30px',
-              background: '#95a5a6',
-              color: '#fff',
+              background: 'linear-gradient(90deg, #aaaabb 0%, #bdbdbd 100%)',
+              color: '#32234c',
+              fontWeight: 'bold',
               border: 'none',
               borderRadius: '8px',
               cursor: 'pointer',
-              fontWeight: 'bold'
+              letterSpacing: 1.5,
+              transition: 'all 0.22s',
+              boxShadow: '0 2px 12px #2b2d4244',
             }}
+            onMouseEnter={e => e.target.style.background = 'linear-gradient(90deg, #d3d3e4 0%, #bdbdbd 100%)'}
+            onMouseLeave={e => e.target.style.background = 'linear-gradient(90deg, #aaaabb 0%, #bdbdbd 100%)'}
           >
             ← Back to Menu
           </button>
@@ -325,7 +344,7 @@ export default function MultiplayerLobby({ onStartGame, onBack }) {
         )}
 
         <button
-          onClick={handleBackToMenu}
+          onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/' }
           style={{
             width: '100%',
             fontSize: '1em',

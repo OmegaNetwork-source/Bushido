@@ -605,6 +605,7 @@ export default function BushidoDuelGame() {
         <div style={{ textAlign: 'center', marginTop: 18 }}>
           <button onClick={() => chooseClan(clan)} style={{ fontSize: 18, padding: '10px 32px', borderRadius: 10, border: '2px solid #333', background: '#fafad2', color: '#111', fontWeight: 'bold', marginBottom: 10 }}>Restart</button>
           {player.hp > 0 && <SubmitScoreButton score={1} playerAddress={account} />}
+          <button onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/'} style={{ fontSize: 18, padding: '10px 32px', borderRadius: 10, border: '2px solid #333', background: '#3498db', color: '#fff', fontWeight: 'bold', marginLeft: 10 }}>Home</button>
         </div>
       )}
     </div>

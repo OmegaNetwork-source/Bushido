@@ -1426,7 +1426,7 @@ export default function BushidoPlatformer({ onBack }) {
               Play Again
           </button>
           <button
-            onClick={() => window.location.href = 'https://somniaarcade.solarstudios.co/' }
+            onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/'}
             style={{
                 padding: '11px', fontSize: '0.99em', borderRadius: 10, fontWeight: 700,
                 background: 'rgba(128, 124, 140, 0.18)', color: '#e0e2ef', border: 'none', marginBottom: 1,
@@ -1520,7 +1520,7 @@ export default function BushidoPlatformer({ onBack }) {
           </button>
 
           <button
-            onClick={() => window.location.href = 'https://somniaarcade.solarstudios.co/' }
+            onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/'}
             style={{
               width: '100%',
               fontSize: '1em',
@@ -1567,7 +1567,7 @@ export default function BushidoPlatformer({ onBack }) {
           Coin Collector コインコレクター
         </h2>
         <button
-          onClick={onBack}
+          onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/'}
           style={{
             padding: '12px 24px',
             background: 'rgba(255,255,255,0.2)',

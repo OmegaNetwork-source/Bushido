@@ -444,8 +444,11 @@ export default function MultiplayerGame({ onExit }) {
 
         {gameOver && (
           <div style={{ textAlign: 'center', marginTop: 18 }}>
-            <button onClick={handleExit} style={{ fontSize: 18, padding: '10px 32px', borderRadius: 10, border: '2px solid #333', background: '#3498db', color: '#fff', fontWeight: 'bold' }}>
-              Back to Lobby
+            <button
+              onClick={() => window.location.href = 'https://bushidogame.solarstudios.co/'}
+              style={{ fontSize: 18, padding: '10px 32px', borderRadius: 10, border: '2px solid #333', background: '#3498db', color: '#fff', fontWeight: 'bold' }}
+            >
+              Back to Home
             </button>
           </div>
         )}
