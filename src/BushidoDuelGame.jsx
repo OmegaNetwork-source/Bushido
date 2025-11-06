@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { useMetaMask } from './MetaMaskContext';
 
@@ -76,6 +76,7 @@ function SubmitScoreButton({ score, playerAddress }) {
 export default function BushidoDuelGame() {
   const { account } = useMetaMask();
   const [clan, setClan] = useState(null); // 'fire' or 'water'
+  useEffect(() => { setClan(null); }, []); // Always clear clan on entry
   const [player, setPlayer] = useState({ hp: 10, clan: "fire", name: "Fire Bushido" });
   const [enemy, setEnemy] = useState({ hp: 10, clan: "water", name: "Water Bushido" });
   const [playerTurn, setPlayerTurn] = useState(true);

@@ -95,7 +95,7 @@ export default function Landing({ onEnterGame, onSelectGame }) {
             🎬 Preview
           </button>
           <button 
-            onClick={onEnterGame}
+            onClick={() => onSelectGame('bushido-duel')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
