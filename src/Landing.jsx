@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 
-export default function Landing({ onEnterGame, onSelectGame }) {
+export default function Landing({ onEnterGame, onSelectGame, onBattleMode }) {
   const [showPreview, setShowPreview] = useState(false);
+  const [showBattleMode, setShowBattleMode] = useState(false);
 
   const previewImages = [
     'https://i.postimg.cc/kV9Q03St/1.png',
@@ -95,7 +96,7 @@ export default function Landing({ onEnterGame, onSelectGame }) {
             NFT Preview
           </button>
           <button 
-            onClick={() => onSelectGame('bushido-duel')}
+            onClick={() => setShowBattleMode(true)}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -466,6 +467,38 @@ export default function Landing({ onEnterGame, onSelectGame }) {
             }}>
               Click outside or press the × button to close
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Battle mode selector modal */}
+      {showBattleMode && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.75)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }} onClick={() => setShowBattleMode(false)}>
+          <div style={{
+            background: 'linear-gradient(135deg, #141e30 0%, #243b55 100%)',
+            borderRadius: 24, padding: '40px 28px', minWidth: 320, boxShadow: '0 8px 32px rgba(168, 85, 247, 0.5)', position: 'relative',
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ color: '#a855f7', fontWeight: 800, fontSize: 29, textAlign: 'center', letterSpacing: 2, marginBottom: 15 }}>Choose Battle Mode</h2>
+            <div style={{ display: 'flex', gap: 20, justifyContent: 'center', margin: '32px 0' }}>
+              <button
+                style={{ fontSize: 20, background: 'linear-gradient(90deg, #00d4ff 0%, #6ee7b7 100%)',
+                  color:'#222', fontWeight:700, border:'none', borderRadius: 14, padding: '22px 32px', cursor:'pointer', boxShadow:'0 2px 10px #00d4ff44, 0 0 0 2px #6ee7b733'}}
+                onClick={() => { setShowBattleMode(false); if (onBattleMode) onBattleMode('single'); }}
+              >
+                Single Player
+              </button>
+              <button
+                style={{ fontSize: 20, background: 'linear-gradient(90deg, #a855f7 0%, #ec4899 100%)',
+                  color:'#fff', fontWeight:700, border:'none', borderRadius: 14, padding: '22px 32px', cursor:'pointer', boxShadow:'0 2px 10px #a855f744, 0 0 0 2px #ec489944'}}
+                onClick={() => { setShowBattleMode(false); if (onBattleMode) onBattleMode('multi'); }}
+              >
+                Multiplayer
+              </button>
+            </div>
+            <button onClick={() => setShowBattleMode(false)} style={{position:'absolute',top:17,right:22,background:'#333',color:'#fff',border:'none',borderRadius:'50%',width:35,height:35,fontSize:18,cursor:'pointer'}}>×</button>
           </div>
         </div>
       )}

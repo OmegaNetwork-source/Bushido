@@ -81,6 +81,17 @@ export default function App() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [multiplayerMode, setMultiplayerMode] = useState(null); // null, 'lobby', or 'game'
 
+  // Handle Battle Mode selection
+  function handleBattleMode(mode) {
+    if (mode === 'single') {
+      setSelectedGame('bushido-duel');
+      setShowLanding(false);
+    } else if (mode === 'multi') {
+      setShowLanding(false);
+      setMultiplayerMode('lobby');
+    }
+  }
+
   // Show landing page first
   if (showLanding) {
     return <Landing 
@@ -89,6 +100,7 @@ export default function App() {
         setSelectedGame(game);
         setShowLanding(false);
       }}
+      onBattleMode={handleBattleMode} // pass new handler
     />;
   }
 
