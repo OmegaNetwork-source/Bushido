@@ -23,18 +23,30 @@ export function MetaMaskProvider({ children }) {
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
-    // Check if already connected
     if (window.ethereum) {
       const ethersProvider = new ethers.BrowserProvider(window.ethereum);
       setProvider(ethersProvider);
-
-      window.ethereum.request({ method: 'eth_accounts' })
-        .then(accounts => {
+      // Attempt to auto-connect and switch to Somnia Mainnet right away
+      (async () => {
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           if (accounts.length > 0) {
             setAccount(accounts[0]);
             ethersProvider.getSigner().then(setSigner);
+            // Always check chain
+            const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+            if (chainId !== SOMNIA_NETWORK.chainId) {
+              try {
+                await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: SOMNIA_NETWORK.chainId }] });
+              } catch (switchError) {
+                if (switchError.code === 4902) {
+                  await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [SOMNIA_NETWORK] });
+                }
+              }
+            }
           }
-        });
+        } catch (e) {}
+      })();
 
       // Listen for account changes
       window.ethereum.on('accountsChanged', (accounts) => {

@@ -9,7 +9,12 @@ const SPRITES = {
   jumping: 'https://i.postimg.cc/7CKwjZNJ/jump-sprite.png',
   dragon: 'https://i.postimg.cc/sGQnsTdW/dragon.png',
   enemyLeft: 'https://i.postimg.cc/K1HRgfdK/water-left.png',
-  enemyRight: 'https://i.postimg.cc/21KVBGPL/water.png'
+  enemyRight: 'https://i.postimg.cc/21KVBGPL/water.png',
+  fireball_shoot: 'https://i.postimg.cc/308tVwLM/fireball-shoot.png',
+  fireball_proj: 'https://i.postimg.cc/ZChbBzCH/fireball.png',
+  sword_back: 'https://i.postimg.cc/ZCjGTG3v/sword-back.png',
+  sword_hit: 'https://i.postimg.cc/5X0ZjsSb/sword-hit.png',
+  explosion: 'https://i.postimg.cc/47gGKz3P/explosion.png',
 };
 
 // Coin Collector specific contract - tracks cumulative coins across all games
@@ -110,7 +115,13 @@ export default function BushidoPlatformer({ onBack }) {
       invincible: false,
       invincibleTimer: 0,
       dropping: false,
-      dropTimer: 0
+      dropTimer: 0,
+      swordSwingTimer: 0,
+      shootingTimer: 0,
+      shooting: false,
+      swordSwingStart: false,
+      swordSwingHit: false,
+      projectiles: []
     },
     camera: {
       x: 0,
@@ -139,7 +150,8 @@ export default function BushidoPlatformer({ onBack }) {
         const width = Math.floor(Math.random() * 120 + 100); // 100-220 width
         
         // Pick random height for maximum variety
-        const y = heights[Math.floor(Math.random() * heights.length)];
+        const minPlatformY = 440;
+        const y = Math.max(heights[Math.floor(Math.random() * heights.length)], minPlatformY);
         
         platforms.push({
           x: Math.floor(x),
@@ -177,9 +189,12 @@ export default function BushidoPlatformer({ onBack }) {
           400, 420, 440, 460, 480, 500, // Mid-high coins
           520, 540, 560, 580, 600, 620, 640 // Mid-low coins
         ];
+        const minCoinY = 120;
+        const maxCoinY = 630;
+        const coinY = Math.min(Math.max(heights[Math.floor(Math.random() * heights.length)], minCoinY), maxCoinY);
         coins.push({
           x: Math.floor(x),
-          y: heights[Math.floor(Math.random() * heights.length)],
+          y: coinY,
           collected: false
         });
         
@@ -208,10 +223,40 @@ export default function BushidoPlatformer({ onBack }) {
     dayNightCycle: 0 // 0 = day, transitioning to 1 = night, back to 0
   });
 
-  // Scroll to top when component mounts
+  const prevKeysRef = useRef({});
+
   useEffect(() => {
+    // Scroll to top when component mounts
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
+    // Auto-connect MetaMask and network on game mount
+    (async () => {
+      if (window.ethereum && !account) {
+        try {
+          // Request connection
+          await window.ethereum.request({ method: 'eth_requestAccounts' });
+          // Try to switch to Somnia if not already connected
+          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+          if (chainId !== '0x13A7') {
+            try {
+              await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x13A7' }] });
+            } catch (switchError) {
+              if (switchError.code === 4902) {
+                await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
+                  chainId: '0x13A7',
+                  chainName: 'Somnia Mainnet',
+                  nativeCurrency: { name: 'SOMI', symbol: 'SOMI', decimals: 18 },
+                  rpcUrls: ['https://api.infra.mainnet.somnia.network/'],
+                  blockExplorerUrls: ['https://explorer.somnia.network']
+                }] });
+              }
+            }
+          }
+        } catch (err) {
+          // Optional: Show wallet connect/network error
+        }
+      }
+    })();
+  }, [account]);
 
   // Initialize enemies on platforms
   useEffect(() => {
@@ -220,8 +265,8 @@ export default function BushidoPlatformer({ onBack }) {
       const enemies = [];
       const enemyHeight = 60;
       
-      // Place enemies on every 5th platform
-      for (let i = 1; i < gameState.platforms.length; i += 5) {
+      // For ground enemies: change i += 5 to i += 3 in the enemies placement loop
+      for (let i = 1; i < gameState.platforms.length; i += 3) {
         const platform = gameState.platforms[i];
         if (platform && platform.type === 'wood') {
           enemies.push({
@@ -232,7 +277,9 @@ export default function BushidoPlatformer({ onBack }) {
             velocityX: 1,
             direction: 1,
             platformX: platform.x,
-            platformWidth: platform.width
+            platformWidth: platform.width,
+            blink: 0,
+            deathAnimFrames: 0
           });
         }
       }
@@ -312,19 +359,20 @@ export default function BushidoPlatformer({ onBack }) {
     canvas.width = maxWidth;
     canvas.height = maxHeight;
 
-    // Keyboard controls
+    // Keyboard controls - one-shot per keypress
     const handleKeyDown = (e) => {
-      gameState.keys[e.key] = true;
-      // Prevent default for arrow keys and space
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' ', 'w', 'a', 's', 'd'].includes(e.key)) {
+      const key = e.key.toLowerCase();
+      if (!gameState.keys[key]) prevKeysRef.current[key] = false;
+      gameState.keys[key] = true;
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", "f", "g"].includes(key)) {
         e.preventDefault();
       }
     };
-
     const handleKeyUp = (e) => {
-      gameState.keys[e.key] = false;
+      const key = e.key.toLowerCase();
+      gameState.keys[key] = false;
+      prevKeysRef.current[key] = false;
     };
-
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
@@ -475,24 +523,24 @@ export default function BushidoPlatformer({ onBack }) {
       // Handle input
       player.velocityX = 0;
       
-      if (gameState.keys['ArrowLeft'] || gameState.keys['a']) {
+      if (gameState.keys['arrowleft'] || gameState.keys['a']) {
         player.velocityX = -player.speed;
         player.facingRight = false;
         if (player.onGround) player.state = 'running';
       }
-      if (gameState.keys['ArrowRight'] || gameState.keys['d']) {
+      if (gameState.keys['arrowright'] || gameState.keys['d']) {
         player.velocityX = player.speed;
         player.facingRight = true;
         if (player.onGround) player.state = 'running';
       }
-      if ((gameState.keys['ArrowUp'] || gameState.keys['w'] || gameState.keys[' ']) && player.onGround) {
+      if ((gameState.keys['arrowup'] || gameState.keys['w']) && player.onGround) {
         player.velocityY = -player.jumpPower;
         player.onGround = false;
         player.state = 'jumping';
       }
       
       // Drop through platforms when pressing down
-      if ((gameState.keys['ArrowDown'] || gameState.keys['s']) && player.onGround && !player.dropping) {
+      if ((gameState.keys['arrowdown'] || gameState.keys['s']) && player.onGround && !player.dropping) {
         player.dropping = true;
         player.dropTimer = 15; // Drop for 15 frames
       }
@@ -558,7 +606,8 @@ export default function BushidoPlatformer({ onBack }) {
 
       // Spawn dragons randomly
       const currentTime = timestamp / 1000;
-      if (currentTime - gameState.lastDragonSpawn > 5) { // Spawn every 5 seconds
+      // For dragon spawn: decrease spawn interval to 2.5 seconds
+      if (currentTime - gameState.lastDragonSpawn > 2.5) {
         gameState.lastDragonSpawn = currentTime;
         const dragonY = Math.random() * 300 + 100; // Random height between 100-400
         const direction = Math.random() > 0.5 ? 1 : -1; // Random direction
@@ -570,7 +619,8 @@ export default function BushidoPlatformer({ onBack }) {
           width: 80,
           height: 60,
           velocityX: direction * 3,
-          direction: direction
+          direction: direction,
+          deathAnimFrames: 0 // Initialize death animation frames
         });
       }
 
@@ -633,6 +683,84 @@ export default function BushidoPlatformer({ onBack }) {
             setGameOver(true);
             setFinalScore(gameState.score);
             cancelAnimationFrame(animationId);
+          }
+        }
+      }
+
+      // 1. FIREBALL/SWORD: Remove player.onGround check, attacks usable in air.
+      // 2. FIREBALL SPEED: 6px/frame instead of 12
+      // 3. SWORD ANIMATION: 13 frames total, switch to sword_hit at 7, revert at 0
+
+      // --- ATTACKS ---
+      if (gameState.keys['f'] && !prevKeysRef.current['f']) {
+        player.state = 'shooting';
+        player.shooting = true;
+        player.shootingTimer = 10;
+        const projDir = player.facingRight ? 1 : -1;
+        player.projectiles.push({
+          x: player.x + (player.facingRight ? player.width : -18),
+          y: player.y + player.height / 2 - 6,
+          w: 30,
+          h: 18,
+          dx: 6 * projDir,
+          facingRight: player.facingRight,
+          alive: true,
+          hitAnim: 0
+        });
+        prevKeysRef.current['f'] = true;
+      }
+      if (!gameState.keys['f']) prevKeysRef.current['f'] = false;
+
+      if (gameState.keys['g'] && !prevKeysRef.current['g']) {
+        player.state = 'swordSwingStart';
+        player.swordSwingStart = true;
+        player.swordSwingTimer = 13;
+        player.swordSwingHit = false;
+        prevKeysRef.current['g'] = true;
+      }
+      if (!gameState.keys['g']) prevKeysRef.current['g'] = false;
+
+      // DRAW PROJECTILES (fireballs): use processed sprite; experiment with 'multiply' blend
+      if (gameState.spritesLoaded && gameState.sprites.fireball_proj) {
+        for (const proj of player.projectiles) {
+          if (proj.alive) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(
+              gameState.sprites.fireball_proj,
+              proj.x, proj.y,
+              proj.w, proj.h
+            );
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
+          } else if (proj.hitAnim > 0 && gameState.sprites.explosion) {
+            ctx.drawImage(gameState.sprites.explosion, proj.x, proj.y, 36, 36);
+          }
+        }
+      }
+
+      // SWORD ANIMATION: 13 frames, display sword_back then sword_hit, then revert
+      if (player.state === 'swordSwingStart') {
+        player.swordSwingTimer--;
+        if (player.swordSwingTimer < 7 && !player.swordSwingHit) {
+          player.swordSwingHit = true;
+          player.state = 'swordSwingHit';
+        }
+        if (player.swordSwingTimer <= 0) {
+          player.state = player.onGround ? 'idle' : 'jumping';
+        }
+      } else if (player.state === 'swordSwingHit') {
+        player.swordSwingTimer--;
+        if (player.swordSwingTimer <= 0) {
+          player.state = player.onGround ? 'idle' : 'jumping';
+          player.swordSwingHit = false;
+        }
+        for (let enemy of gameState.enemies) {
+          if (enemy && enemy.blink <= 0 &&
+              Math.abs((player.x + (player.facingRight ? player.width : 0)) - enemy.x) < 48 &&
+              Math.abs(player.y - enemy.y) < 35) {
+            enemy.blink = 6;
+            enemy.deathAnimFrames = 18;
           }
         }
       }
@@ -783,87 +911,234 @@ export default function BushidoPlatformer({ onBack }) {
         }
       }
 
-      // Draw player (sprites are already processed with transparency)
+      // DRAW PLAYER (handle ALL states)
       if (gameState.spritesLoaded) {
-        const sprite = gameState.sprites[player.state] || gameState.sprites.idle;
+        let sprite;
+        if (player.state === 'shooting') {
+          sprite = gameState.sprites.fireball_shoot;
+        } else if (player.state === 'swordSwingStart') {
+          sprite = gameState.sprites.sword_back;
+        } else if (player.state === 'swordSwingHit') {
+          sprite = gameState.sprites.sword_hit;
+        } else {
+          sprite = gameState.sprites[player.state] || gameState.sprites.idle;
+        }
         
         // Flashing effect when invincible
         if (player.invincible && Math.floor(timestamp / 100) % 2 === 0) {
           ctx.globalAlpha = 0.5;
         }
         
+        // PLAYER DRAW: always use identical ctx.translate/calc for both directions
         ctx.save();
-        ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+        ctx.translate(player.x + player.width / 2, player.y + player.height);
         if (!player.facingRight) {
           ctx.scale(-1, 1);
         }
-        ctx.drawImage(
-          sprite,
-          -player.width / 2,
-          -player.height / 2,
-          player.width,
-          player.height
-        );
+        // Correction: When facing left, apply a 1px shift to anchor feet exactly
+        ctx.drawImage(sprite, -player.width / 2, -player.height + 1, player.width, player.height);
         ctx.restore();
-        
         ctx.globalAlpha = 1;
-      } else {
-        // Fallback rectangle if sprites not loaded
-        ctx.fillStyle = '#e74c3c';
-        ctx.fillRect(player.x, player.y, player.width, player.height);
       }
+
+      // PROJECTILE LOGIC
+      for (let i = player.projectiles.length - 1; i >= 0; i--) {
+        const proj = player.projectiles[i];
+        if (!proj.alive && proj.hitAnim <= 0) {
+          player.projectiles.splice(i, 1); // Remove done
+          continue;
+        }
+        if (!proj.alive) {
+          proj.hitAnim--;
+          continue;
+        }
+        proj.x += proj.dx;
+        // Check offscreen
+        if (proj.x < camera.x - 40 || proj.x > camera.x + canvas.width + 40) {
+          player.projectiles.splice(i, 1);
+          continue;
+        }
+        // Check hit on enemies
+        for (let enemy of gameState.enemies) {
+          if (enemy && proj.alive &&
+              proj.x + proj.w > enemy.x && proj.x < enemy.x + enemy.width &&
+              proj.y + proj.h > enemy.y && proj.y < enemy.y + enemy.height) {
+            enemy.blink = 6;
+            enemy.deathAnimFrames = 18;
+            proj.alive = false;
+            proj.hitAnim = 10;
+          }
+        }
+      }
+
+      // --- ENEMY EXPLOSION & DEATH (ground enemies and dragons) ---
+      // Ground enemies (death animation/removal & explosion):
+      for (let i = gameState.enemies.length - 1; i >= 0; i--) {
+        const enemy = gameState.enemies[i];
+        if (enemy.deathAnimFrames > 0) {
+          enemy.deathAnimFrames--;
+          enemy.blink = 0; // don't flash anymore
+          if (gameState.spritesLoaded && gameState.sprites.explosion) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(gameState.sprites.explosion, enemy.x, enemy.y, enemy.width, enemy.height);
+            ctx.globalCompositeOperation = 'source-over';
+      ctx.restore();
+          }
+          if (enemy.deathAnimFrames === 0) {
+            gameState.enemies.splice(i, 1);
+            continue;
+          }
+        }
+      }
+      // Dragons (death animation/removal & explosion):
+      for (let i = gameState.dragons.length - 1; i >= 0; i--) {
+        const dragon = gameState.dragons[i];
+        if (dragon.deathAnimFrames > 0) {
+          dragon.deathAnimFrames--;
+          if (gameState.spritesLoaded && gameState.sprites.explosion) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(gameState.sprites.explosion, dragon.x, dragon.y, dragon.width, dragon.height);
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
+          }
+          if (dragon.deathAnimFrames === 0) {
+            gameState.dragons.splice(i, 1);
+            continue;
+          }
+        }
+      }
+
+      // DRAW PROJECTILES (fireballs): use processed sprite; experiment with 'multiply' blend
+      if (gameState.spritesLoaded && gameState.sprites.fireball_proj) {
+        for (const proj of player.projectiles) {
+          if (proj.alive) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(
+              gameState.sprites.fireball_proj,
+              proj.x, proj.y,
+              proj.w, proj.h
+            );
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.restore();
+          } else if (proj.hitAnim > 0 && gameState.sprites.explosion) {
+            ctx.drawImage(gameState.sprites.explosion, proj.x, proj.y, 36, 36);
+          }
+        }
+      }
+
+      // SWORD ANIMATION: 13 frames, display sword_back then sword_hit, then revert
+      if (player.state === 'swordSwingStart') {
+        player.swordSwingTimer--;
+        if (player.swordSwingTimer < 7 && !player.swordSwingHit) {
+          player.swordSwingHit = true;
+          player.state = 'swordSwingHit';
+        }
+        if (player.swordSwingTimer <= 0) {
+          player.state = player.onGround ? 'idle' : 'jumping';
+        }
+      } else if (player.state === 'swordSwingHit') {
+        player.swordSwingTimer--;
+        if (player.swordSwingTimer <= 0) {
+          player.state = player.onGround ? 'idle' : 'jumping';
+          player.swordSwingHit = false;
+        }
+        for (let enemy of gameState.enemies) {
+          if (enemy && enemy.blink <= 0 &&
+              Math.abs((player.x + (player.facingRight ? player.width : 0)) - enemy.x) < 48 &&
+              Math.abs(player.y - enemy.y) < 35) {
+            enemy.blink = 6;
+            enemy.deathAnimFrames = 18;
+          }
+        }
+      }
+
+      // Draw 5 clean hearts at fixed top left, always visible; remove all HP bar/background/text.
+      ctx.setTransform(1,0,0,1,0,0); // Reset transform so coordinates are always screen-relative
+        ctx.save();
+      for (let i = 0; i < player.maxHealth; i++) {
+        ctx.font = '29px Arial';
+        ctx.lineWidth = 2.2;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        let heartX = 26 + i * 28;
+        let heartY = 29;
+        ctx.strokeStyle = '#fff';
+        ctx.strokeText('♥', heartX, heartY);
+        ctx.fillStyle = i < player.health ? '#ff4c48' : '#ebabb3';
+        ctx.fillText('♥', heartX, heartY);
+      }
+        ctx.restore();
+
+      // 2. Fix Dragon Death detection (in fireball and sword hit code):
+      // Where fireball hits an enemy, also check and apply for all dragons.
+      for (let proj of player.projectiles) {
+        if (proj.alive) {
+          for (let dragon of gameState.dragons) {
+            if (dragon && !dragon.deathAnimFrames &&
+                proj.x + proj.w > dragon.x && proj.x < dragon.x + dragon.width &&
+                proj.y + proj.h > dragon.y && proj.y < dragon.y + dragon.height) {
+              dragon.deathAnimFrames = 18;
+              proj.alive = false;
+              proj.hitAnim = 10;
+            }
+          }
+        }
+      }
+      // Sword attack hits for dragons as well:
+      if (player.state === 'swordSwingHit') {
+        for (let dragon of gameState.dragons) {
+          if (dragon && !dragon.deathAnimFrames &&
+              Math.abs((player.x + (player.facingRight ? player.width : 0)) - dragon.x) < 60 &&
+              Math.abs(player.y - dragon.y) < 38) {
+            dragon.deathAnimFrames = 18;
+          }
+        }
+      }
+
+      // 3. Transparency patch for ALL sprites in loadSprites effect (see below for actual code; here is the intent annotation):
+      // After obtaining imageData for each sprite (any key), for each pixel:
+      // if (r > 170 && g > 170 && b > 170) -> set alpha to 0.
 
       ctx.restore();
 
-      // Draw HUD
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(10, 10, 280, 70);
-      
-      // Draw hearts
-      const heartSize = 30;
-      for (let i = 0; i < player.maxHealth; i++) {
-        const heartX = 20 + i * (heartSize + 8);
-        const heartY = 25;
-        
-        if (i < player.health) {
-          // Full heart (red)
-          ctx.fillStyle = '#FF6B6B';
-        } else {
-          // Empty heart (gray)
-          ctx.fillStyle = '#555';
-        }
-        
-        // Draw heart shape
-        ctx.save();
-        ctx.translate(heartX, heartY);
-        ctx.beginPath();
-        ctx.moveTo(heartSize / 2, heartSize / 4);
-        ctx.bezierCurveTo(heartSize / 2, 0, 0, 0, 0, heartSize / 3);
-        ctx.bezierCurveTo(0, heartSize / 2, heartSize / 2, heartSize * 0.85, heartSize / 2, heartSize);
-        ctx.bezierCurveTo(heartSize / 2, heartSize * 0.85, heartSize, heartSize / 2, heartSize, heartSize / 3);
-        ctx.bezierCurveTo(heartSize, 0, heartSize / 2, 0, heartSize / 2, heartSize / 4);
-        ctx.fill();
-        
-        // Heart outline
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.restore();
-      }
-      
-      // Draw score below hearts
-      ctx.fillStyle = '#FFD700';
-      ctx.font = 'bold 20px Arial';
-      ctx.fillText(`¥${gameState.score}`, 20, 70);
-
-      // Draw controls hint
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(10, canvas.height - 80, 350, 70);
+      // Modern flexible layout for HUD
+      ctx.save();
+      const boxX = 22;
+      const boxY = canvas.height - 65;
+      const boxW = canvas.width - 42;
+      const boxH = 57;
+      ctx.fillStyle = '#2a2229ee';
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+      ctx.font = 'bold 25px Arial';
       ctx.fillStyle = '#fff';
-      ctx.font = '14px Arial';
-      ctx.fillText('← → or A/D: Move', 20, canvas.height - 55);
-      ctx.fillText('↑ or W or Space: Jump', 20, canvas.height - 35);
-      ctx.fillText('↓ or S: Drop through platform', 20, canvas.height - 15);
+      ctx.textAlign = 'center';
+      const lineY = boxY + 36;
+      // Place each text at 1/8, 3/8, 5/8, 7/8 HUD box width for perfect spacing
+      const n = 4;
+      const col1 = boxX + boxW * (1 / (2*n));
+      const col2 = boxX + boxW * (3 / (2*n));
+      const col3 = boxX + boxW * (5 / (2*n));
+      const col4 = boxX + boxW * (7 / (2*n));
+      ctx.fillText('←→ A/D: Move', col1, lineY);
+      ctx.fillText('Space/W/↑: Jump', col2, lineY);
+      ctx.fillText('↓/S: Drop', col3, lineY);
+      ctx.fillText('F: Fireball', col4, lineY);
+      ctx.restore();
+
+      // Add fixed session coin/token counter top right
+      ctx.save();
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.font = 'bold 26px Arial';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      // Coin icon using emoji (🪙), fallback to circle if unsupported
+      const coinIcon = '🪙';
+      ctx.fillText(coinIcon + ' ' + gameState.score, canvas.width - 36, 34);
+      ctx.restore();
 
       animationId = requestAnimationFrame(gameLoop);
     };
@@ -925,6 +1200,12 @@ export default function BushidoPlatformer({ onBack }) {
     gameState.player.dropTimer = 0;
     gameState.player.invincible = false;
     gameState.player.invincibleTimer = 0;
+    gameState.player.swordSwingTimer = 0;
+    gameState.player.shootingTimer = 0;
+    gameState.player.shooting = false;
+    gameState.player.swordSwingStart = false;
+    gameState.player.swordSwingHit = false;
+    gameState.player.projectiles = [];
     gameState.score = 0;
     gameState.camera.x = 0;
     gameState.camera.y = 0;
@@ -943,7 +1224,7 @@ export default function BushidoPlatformer({ onBack }) {
     // Reset enemies to their starting positions on platforms
     const enemies = [];
     const enemyHeight = 60;
-    for (let i = 1; i < gameState.platforms.length; i += 5) {
+    for (let i = 1; i < gameState.platforms.length; i += 3) {
       const platform = gameState.platforms[i];
       if (platform && platform.type === 'wood') {
         enemies.push({
@@ -954,7 +1235,9 @@ export default function BushidoPlatformer({ onBack }) {
           velocityX: 1,
           direction: 1,
           platformX: platform.x,
-          platformWidth: platform.width
+          platformWidth: platform.width,
+          blink: 0,
+          deathAnimFrames: 0
         });
       }
     }
@@ -977,162 +1260,186 @@ export default function BushidoPlatformer({ onBack }) {
     return (
       <div style={{
         minHeight: '100vh',
+        width: '100vw',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        padding: '20px'
+        background: 'linear-gradient(125deg, #161b29 0%, #572ad8 100%)',
+        padding: 0,
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0
       }}>
+        {/* Animated background blobs/particles - CSS only */}
         <div style={{
-          background: 'rgba(0,0,0,0.9)',
-          padding: '60px 50px',
-          borderRadius: '20px',
-          textAlign: 'center',
-          maxWidth: '600px',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          border: '3px solid #e74c3c'
+          position: 'absolute', zIndex: 0, inset: 0, overflow: 'hidden', pointerEvents: 'none',
         }}>
-          <h1 style={{
-            fontSize: '4em',
-            marginBottom: '20px',
-            color: '#e74c3c',
-            fontWeight: 'bold',
-            textShadow: '0 0 20px rgba(231, 76, 60, 0.8)'
-          }}>💀 GAME OVER 💀</h1>
-          
+          <div style={{ position: 'absolute', top: 70, left: 55, width: 320, height: 320, borderRadius: 9999, background: 'radial-gradient(circle at 65% 40%, #009fffbb, #653be650 90%)', filter: 'blur(40px)', opacity: 0.7, animation: 'float 10s infinite alternate' }}></div>
+          <div style={{ position: 'absolute', bottom: 65, right: 80, width: 210, height: 200, borderRadius: 9999, background: 'radial-gradient(circle at 40% 65%, #bbacefff, #fcf87840 95%)', filter: 'blur(38px)', opacity: 0.4, animation: 'float 14s infinite alternate-reverse' }}></div>
+          <style>{`
+            @keyframes float {
+              from { transform: translateY(0px) scale(1) rotateZ(0deg); }
+              to { transform: translateY(-34px) scale(1.03) rotateZ(6deg); }
+            }
+          `}</style>
+        </div>
+        {/* Frosted glass card */}
           <div style={{
-            background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-            padding: '30px',
-            borderRadius: '15px',
-            marginBottom: '30px',
-            border: '3px solid #FF8C00'
-          }}>
-            <h2 style={{
-              fontSize: '2em',
-              color: '#000',
-              marginBottom: '10px'
-            }}>Final Score</h2>
-            <p style={{
-              fontSize: '4em',
-              color: '#000',
-              fontWeight: 'bold',
-              margin: 0
-            }}>¥{finalScore}</p>
+          position: 'relative',
+          zIndex: 2,
+          background: 'rgba(255,255,255,0.07)',
+          backdropFilter: 'blur(16px) saturate(180%)',
+          borderRadius: 18,
+          padding: '42px 34px 39px 34px',
+          maxWidth: 410,
+          minWidth: 332,
+          boxShadow: '0 8px 64px 0 rgba(80,45,180,0.21), 0 1px 0px rgba(255,255,255,0.09) inset',
+          border: '2.5px solid rgba(156, 75, 255, 0.13)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: -22
+        }}>
+          {/* GAME OVER Headline */}
+          <div style={{ textAlign: 'center', marginBottom: 14 }}>
+            <span style={{
+              fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+              fontWeight: 800,
+              fontSize: 44,
+              color: '#eb3b62',
+              letterSpacing: 0.5,
+              background: 'linear-gradient(93deg, #f23a55 60%, #e0daff 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              lineHeight: 1.03,
+              textShadow: 'none',
+              textTransform: 'uppercase',
+              filter: 'drop-shadow(0 0 6px #f4598637)'
+            }}>GAME OVER</span>
           </div>
-
-          <p style={{
-            fontSize: '1.3em',
-            color: '#fff',
-            marginBottom: '30px',
-            lineHeight: '1.6'
+          {/* Crisp neon score in sharp gold disk */}
+          <div style={{
+            margin: '14px 0 19px 0',
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 4
           }}>
-            You collected <strong style={{ color: '#FFD700' }}>{finalScore}</strong> coins! 🪙
-            <br />
-            {account ? 'Submit your score to the blockchain leaderboard!' : 'Connect your wallet to submit your score!'}
-          </p>
-
-          {account && !scoreSubmitted && (
+            <div style={{
+              width: 110, height: 110,
+              background: 'radial-gradient(circle at 48% 48%, #fffbe5 51%, #ffce00 83%, #cc9200 100%)',
+              borderRadius: '50%',
+              boxShadow: '0 0 35px 0 #ffd80020, 0 1px 11px #f68d0020',
+              border: '3.5px solid #f7b80cbb',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+              fontSize: 42, fontWeight: 900, color: '#332001',
+              letterSpacing: '-0.5px', filter:'none',textShadow:'none'
+            }}>
+              {finalScore}
+            </div>
+            <span style={{ fontSize: 17, color: '#fff', fontWeight: 700, letterSpacing: 0.7, fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif', marginTop: 7, textShadow: 'none', textTransform: 'uppercase' }}>
+              Final Score
+            </span>
+          </div>
+          {/* Submission panel/confirmation */}
+          {!scoreSubmitted && (
             <button
               onClick={handleSubmitScore}
               disabled={submittingScore}
               style={{
                 width: '100%',
-                fontSize: '1.5em',
-                padding: '20px',
+                fontSize: '1.13em',
+                padding: '16px',
+                outline: 'none',
                 background: submittingScore 
-                  ? '#95a5a6' 
-                  : 'linear-gradient(135deg, #00d4ff 0%, #a855f7 100%)',
+                  ? 'linear-gradient(84deg,#9d9d9d 0%,#c2c2c2 100%)'
+                  : 'linear-gradient(91deg, #3175e8 0%, #9518f4 99%)',
                 color: '#fff',
                 border: 'none',
-                borderRadius: '12px',
-                fontWeight: 'bold',
+                borderRadius: 10,
+                fontWeight: 800,
+                fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+                boxShadow: submittingScore ? 'none':'0 2px 14px rgba(30,128,255,0.16)',
                 cursor: submittingScore ? 'not-allowed' : 'pointer',
-                boxShadow: '0 8px 20px rgba(0, 212, 255, 0.4)',
-                marginBottom: '15px',
-                transition: 'transform 0.2s'
+                marginBottom: 19,
+                letterSpacing: 0.12,
+                transition: 'background 0.18s, transform 0.18s, box-shadow 0.18s',
+                transform: submittingScore ? 'none':'scale(1)',
               }}
-              onMouseEnter={(e) => !submittingScore && (e.target.style.transform = 'scale(1.05)')}
-              onMouseLeave={(e) => !submittingScore && (e.target.style.transform = 'scale(1)')}
+              onMouseEnter={e => !submittingScore && (e.target.style.transform = 'scale(1.022)')}
+              onMouseLeave={e => !submittingScore && (e.target.style.transform = 'scale(1)')}
             >
-              {submittingScore ? '⏳ Submitting to Blockchain...' : '🏆 Submit Score to Leaderboard'}
+              {submittingScore ? 'Submitting to Blockchain...' : 'Submit Score to Leaderboard'}
             </button>
           )}
-
           {scoreSubmitted && (
             <div style={{
-              background: 'rgba(46, 204, 113, 0.2)',
-              border: '2px solid #2ecc71',
-              borderRadius: '10px',
+              width: '100%',
               padding: '15px',
-              marginBottom: '15px',
-              color: '#2ecc71',
-              fontSize: '1.2em',
-              fontWeight: 'bold'
+              background: 'linear-gradient(90deg, #38ec97 0%, #b3ffd2 100%)',
+              border: '1.2px solid #62dea8',
+              borderRadius: 10,
+              color: '#043c13',
+              fontWeight: '900',
+              fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+              fontSize: '1.07em',
+              textAlign: 'center',
+              marginBottom: 13,
+              marginTop: -5,
+              boxShadow: '0 1px 11px #73ffd160,0px 1px #aaf5c3',
+              letterSpacing: 0.13
             }}>
-              ✅ Score Submitted Successfully!
+              Score Submitted Successfully!
             </div>
           )}
-
+          <div style={{
+            padding: '14px', color: '#fff', textAlign: 'center', fontSize: '1.09em', letterSpacing: 0.08, lineHeight: 1.58, fontWeight: 500, margin: '4px 0 12px 0', borderRadius: 9,
+            background: 'rgba(60, 65, 110, 0.17)',
+          }}>
+            You collected {finalScore} coins.<br/>
+            {account ? 'Your score will appear in the leaderboard soon.' : 'Connect your wallet to submit your score.'}
+          </div>
+          {/* Modern primary buttons below */}
+          <div style={{ display:'flex', flexDirection:'column', gap:15, width:'100%', marginTop: 9 }}>
           <button
             onClick={() => setShowLeaderboard(true)}
             style={{
-              width: '100%',
-              fontSize: '1.3em',
-              padding: '15px',
-              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-              color: '#000',
-              border: 'none',
-              borderRadius: '12px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(255, 215, 0, 0.4)',
-              marginBottom: '15px',
-              transition: 'transform 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-          >
-            🏆 View Leaderboard
+                padding: '13px', fontSize: '1.09em', borderRadius: 10, fontWeight: 800,
+                background: 'linear-gradient(92deg, #FFD700 0%, #ffbe40 99%)', color: '#333', border: 'none',
+                letterSpacing: 0.09, cursor:'pointer', boxShadow: '0 1px 11px #ffd70030', fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+                transition:'transform 0.15s',
+              }}
+              onMouseEnter={e => e.target.style.transform = 'scale(1.025)'}
+              onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+            >
+              View Leaderboard
           </button>
-
           <button
             onClick={handleRestart}
             style={{
-              width: '100%',
-              fontSize: '1.3em',
-              padding: '15px',
-              background: 'linear-gradient(135deg, #2ecc71 0%, #27ae60 100%)',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '12px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              boxShadow: '0 8px 20px rgba(46, 204, 113, 0.4)',
-              marginBottom: '15px',
-              transition: 'transform 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-          >
-            🔄 Play Again
+                padding: '13px', fontSize: '1.03em', borderRadius: 10, fontWeight: 800, marginBottom: 2,
+                background: 'linear-gradient(96deg, #2ecc71 0%, #27ae60 100%)', color: '#fff', border: 'none',
+                boxShadow: '0 1px 10px #49eac850', letterSpacing: 0.08,
+                cursor:'pointer', fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+                transition:'transform 0.15s',
+              }}
+              onMouseEnter={e => e.target.style.transform = 'scale(1.02)'}
+              onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+            >
+              Play Again
           </button>
-
           <button
             onClick={onBack}
             style={{
-              width: '100%',
-              fontSize: '1em',
-              padding: '12px',
-              background: '#95a5a6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
-            ← Back to Menu
+                padding: '11px', fontSize: '0.99em', borderRadius: 10, fontWeight: 700,
+                background: 'rgba(128, 124, 140, 0.18)', color: '#e0e2ef', border: 'none', marginBottom: 1,
+                cursor:'pointer', fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+                backdropFilter: 'blur(3.5px)', letterSpacing:0.04,
+                transition:'transform 0.13s',
+              }}
+              onMouseEnter={e => e.target.style.transform = 'scale(1.015)'}
+              onMouseLeave={e => e.target.style.transform = 'scale(1)'}
+            >
+              Back to Menu
           </button>
+          </div>
         </div>
       </div>
     );

@@ -245,154 +245,234 @@ export default function BushidoDuelGame() {
 
   if (!clan) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
+      <div style={{
+        minHeight: '100vh',
+        minWidth: '100vw',
+        width: '100vw',
+        height: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px',
-        background: 'linear-gradient(90deg, #2d0a0a 0%, #0a0a2e 50%, #0a1a2d 100%)'
+        background: 'linear-gradient(110deg, #181d31 0%, #2b2d42 100%)',
+        padding: 0,
+        margin: 0,
+        boxSizing: 'border-box',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 10,
       }}>
-        <div style={{ 
+        <div style={{
           width: '100%',
-          maxWidth: '1100px',
-          textAlign: 'center'
+          maxWidth: 1800,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flex: 1,
         }}>
-          <h1 style={{ 
-            fontSize: window.innerWidth > 768 ? '4em' : '2.5em', 
-            color: '#fff', 
-            marginBottom: '15px', 
-            textShadow: '3px 3px 10px rgba(0,0,0,0.9)', 
-            fontFamily: 'Georgia, serif',
-            fontWeight: 'bold'
-          }}>武士道</h1>
-          <h2 style={{ 
-            color: '#fbc88d', 
-            marginBottom: '60px', 
-            fontSize: window.innerWidth > 768 ? '2.2em' : '1.5em', 
-            textShadow: '2px 2px 6px rgba(0,0,0,0.8)', 
-            fontFamily: 'Georgia, serif',
-            fontWeight: '300',
-            letterSpacing: '2px'
-          }}>Choose Your Clan</h2>
-          
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: window.innerWidth > 768 ? '1fr 1fr' : '1fr', 
-            gap: window.innerWidth > 768 ? '50px' : '30px',
-            maxWidth: '900px',
-            margin: '0 auto'
+          <div style={{
+            fontSize: window.innerWidth > 768 ? '4.2em' : '2em',
+            letterSpacing: window.innerWidth > 768 ? 6 : 3,
+            color: '#fff',
+            fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+            fontWeight: 900,
+            textShadow: '0 8px 34px #401d2e70, 0 1.5px 0 #ffe',
+            padding: 0,
+            marginBottom: 0,
+            textAlign: 'center',
+          }}>武士道</div>
+          <div style={{
+            fontSize: window.innerWidth > 768 ? '2.05em' : '1.3em',
+            color: '#fdc268',
+            fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+            fontWeight: 900,
+            textTransform: 'uppercase',
+            letterSpacing: 2.3,
+            marginTop: 0,
+            textShadow: '0 1.5px 0 #451',
+            marginBottom: 10,
+            textAlign: 'center',
+          }}>BUSHIDO BATTLE</div>
+          <div style={{
+            fontSize: window.innerWidth > 768 ? '1.40em' : '1.09em',
+            color: '#fdc268',
+            fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: 2.3,
+            textShadow: '0 1.5px 0 #451',
+            marginBottom: 42,
+            textAlign: 'center',
+          }}>CHOOSE YOUR CLAN</div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: window.innerWidth > 900 ? 'row' : 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: window.innerWidth > 900 ? 62 : 30,
+            width: '100%',
+            flex: 'none',
+            margin: 0,
+            padding: 0,
           }}>
-            {/* Fire Clan */}
-            <div 
+            {/* Fire Clan Card */}
+            <div
               onClick={() => chooseClan('fire')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                e.currentTarget.style.boxShadow = '0 20px 50px rgba(255,107,53,0.7)';
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'scale(1.037)';
+                e.currentTarget.style.boxShadow = '0 8px 44px 0 #ff3b3455, 0 0 0 3px #ff2820c6';
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = '0 10px 35px rgba(255,107,53,0.5)';
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 2px 20px #c0392b70, 0 0 0 3px #c94b2850';
               }}
-              style={{ 
-                background: 'linear-gradient(135deg, #c0392b 0%, #e74c3c 100%)', 
-                padding: '40px 30px', 
-                borderRadius: '20px', 
-                cursor: 'pointer', 
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                border: '4px solid rgba(255,107,53,0.6)', 
-                boxShadow: '0 10px 35px rgba(255,107,53,0.5)',
+              style={{
+                background: 'rgba(25,12,12,0.44)',
+                border: '2.5px solid #ff2820c6',
+                borderRadius: 14,
+                boxShadow: '0 2px 20px #c0392b70, 0 0 0 3px #c94b2850',
+                padding: '36px 22px 34px 22px',
+                cursor: 'pointer',
+                transition: 'all 0.18s cubic-bezier(.71,.42,.42,1.01)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
+                userSelect: 'none',
                 position: 'relative',
-                overflow: 'hidden'
+                minWidth: 210,
+                flex: 1,
+                minHeight: 298,
+                marginBottom: window.innerWidth > 900 ? 0 : 18,
+                maxWidth: 390,
               }}
             >
-              <img 
-                src="https://i.postimg.cc/P50z5f6k/fire.png" 
-                style={{ 
-                  width: '150px', 
-                  height: '150px', 
-                  filter: 'drop-shadow(0 0 20px #ff6b35)',
-                  objectFit: 'contain',
-                  marginBottom: '20px'
-                }} 
+              <img
+                src="https://i.postimg.cc/P50z5f6k/fire.png"
                 alt="Fire Bushido"
+                style={{
+                  width: 120,
+                  height: 120,
+                  marginBottom: 17,
+                  filter: 'drop-shadow(0 0 14px #ef5a42cc)',
+                  borderRadius: 10,
+                }}
               />
-              <h3 style={{ 
-                color: '#fff', 
-                fontSize: '2em', 
-                margin: '15px 0', 
-                fontFamily: 'Georgia, serif',
-                fontWeight: 'bold',
-                textShadow: '2px 2px 6px rgba(0,0,0,0.5)',
-                letterSpacing: '1px'
-              }}>🔥 Fire Bushido</h3>
-              <p style={{ 
-                color: 'rgba(255,255,255,0.95)', 
-                fontSize: '1.05em', 
-                lineHeight: '1.7', 
-                fontFamily: 'Georgia, serif',
-                maxWidth: '280px',
-                margin: '0 auto'
-              }}>Masters of aggression and raw power. Strike with the fury of volcanic flame!</p>
+              <div style={{
+                color: '#fff',
+                fontSize: 27,
+                fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+                fontWeight: 900,
+                letterSpacing: 0.55,
+                textTransform: 'uppercase',
+                marginBottom: 7,
+                marginTop: -3,
+              }}>
+                FIRE BUSHIDO
+              </div>
+              <div style={{
+                color: '#fdc268',
+                fontFamily: 'Inter, Arial, sans-serif',
+                fontWeight: 700,
+                fontSize: 14,
+                marginBottom: 6,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}>
+                OFFENSE / POWER
+              </div>
+              <div style={{
+                color: '#ffeeee',
+                fontFamily: 'Inter, Arial, sans-serif',
+                fontWeight: 500,
+                fontSize: 15,
+                lineHeight: 1.6,
+                maxWidth: 215,
+                margin: '9px auto 0 auto',
+                letterSpacing: 0.13,
+              }}>
+                Masters of aggression and raw power. Strike with the fury of volcanic flame!
+              </div>
             </div>
-            
-            {/* Water Clan */}
-            <div 
+            {/* Water Clan Card */}
+            <div
               onClick={() => chooseClan('water')}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-10px) scale(1.02)';
-                e.currentTarget.style.boxShadow = '0 20px 50px rgba(52,152,219,0.7)';
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'scale(1.037)';
+                e.currentTarget.style.boxShadow = '0 8px 44px 0 #22eaff70, 0 0 0 3px #1c87e1c6';
               }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                e.currentTarget.style.boxShadow = '0 10px 35px rgba(52,152,219,0.5)';
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = '0 2px 20px #2c8ed6aa, 0 0 0 3px #12c1e250';
               }}
-              style={{ 
-                background: 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)', 
-                padding: '40px 30px', 
-                borderRadius: '20px', 
-                cursor: 'pointer', 
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
-                border: '4px solid rgba(52,152,219,0.6)', 
-                boxShadow: '0 10px 35px rgba(52,152,219,0.5)',
+              style={{
+                background: 'rgba(16,28,41,0.44)',
+                border: '2.5px solid #1c87e1c6',
+                borderRadius: 14,
+                boxShadow: '0 2px 20px #2c8ed6aa, 0 0 0 3px #12c1e250',
+                padding: '36px 22px 34px 22px',
+                cursor: 'pointer',
+                transition: 'all 0.18s cubic-bezier(.71,.42,.42,1.01)',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
+                userSelect: 'none',
                 position: 'relative',
-                overflow: 'hidden'
+                minWidth: 210,
+                flex: 1,
+                minHeight: 298,
+                maxWidth: 390,
               }}
             >
-              <img 
-                src="https://i.postimg.cc/VvFDSyJW/water.png" 
-                style={{ 
-                  width: '150px', 
-                  height: '150px', 
-                  filter: 'drop-shadow(0 0 20px #3498db)',
-                  objectFit: 'contain',
-                  marginBottom: '20px'
-                }} 
+              <img
+                src="https://i.postimg.cc/VvFDSyJW/water.png"
                 alt="Water Bushido"
+                style={{
+                  width: 120,
+                  height: 120,
+                  marginBottom: 17,
+                  filter: 'drop-shadow(0 0 17px #34e7ffce)',
+                  borderRadius: 10,
+                }}
               />
-              <h3 style={{ 
-                color: '#fff', 
-                fontSize: '2em', 
-                margin: '15px 0', 
-                fontFamily: 'Georgia, serif',
-                fontWeight: 'bold',
-                textShadow: '2px 2px 6px rgba(0,0,0,0.5)',
-                letterSpacing: '1px'
-              }}>💧 Water Bushido</h3>
-              <p style={{ 
-                color: 'rgba(255,255,255,0.95)', 
-                fontSize: '1.05em', 
-                lineHeight: '1.7', 
-                fontFamily: 'Georgia, serif',
-                maxWidth: '280px',
-                margin: '0 auto'
-              }}>Flow like water, strike like a tidal wave. Patience refined into overwhelming force!</p>
+              <div style={{
+                color: '#dce9fd',
+                fontSize: 27,
+                fontFamily: 'Montserrat, Inter, Rubik, Arial, sans-serif',
+                fontWeight: 900,
+                letterSpacing: 0.55,
+                textTransform: 'uppercase',
+                marginBottom: 7,
+                marginTop: -3,
+              }}>
+                WATER BUSHIDO
+              </div>
+              <div style={{
+                color: '#7de8ff',
+                fontFamily: 'Inter, Arial, sans-serif',
+                fontWeight: 700,
+                fontSize: 14,
+                marginBottom: 6,
+                textTransform: 'uppercase',
+                letterSpacing: 1,
+              }}>
+                DEFENSE / FLOW
+              </div>
+              <div style={{
+                color: '#e6f7ff',
+                fontFamily: 'Inter, Arial, sans-serif',
+                fontWeight: 500,
+                fontSize: 15,
+                lineHeight: 1.6,
+                maxWidth: 215,
+                margin: '9px auto 0 auto',
+                letterSpacing: 0.13,
+              }}>
+                Flow like water, strike like a tidal wave. Patience refined into overwhelming force!
+              </div>
             </div>
           </div>
         </div>
@@ -409,7 +489,7 @@ export default function BushidoDuelGame() {
       background: 'none',
       width: '100%',
     }}>
-      <h2 style={{ textAlign: 'center', color: '#fff', textShadow: '1px 1px 6px #000', marginBottom: 12 }}>Bushido Duel</h2>
+      {/* Remove the Bushido Duel <h2> header here, just keep the rest of the battle UI */}
       {/* Battle Scene */}
       <div style={{
         position: 'relative',
@@ -438,7 +518,7 @@ export default function BushidoDuelGame() {
         }}>
           <div style={{ fontWeight: 'bold', color: '#fff', textShadow: '1px 1px 4px #000', marginBottom: 2 }}>{player.name}</div>
           <div style={{ width: 200, height: 18, background: '#222', borderRadius: 10, marginBottom: 2 }}>
-            <div style={{ width: `${(player.hp / 10) * 100}%`, height: '100%', background: '#e74c3c', borderRadius: 10, transition: 'width 0.3s' }} />
+            <div style={{ width: `${(player.hp / 10) * 100}%`, height: '100%', background: clan === 'fire' ? '#e74c3c' : '#3498db', borderRadius: 10, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontSize: 13, color: '#fff', textShadow: '1px 1px 2px #000' }}>{player.hp}/10</div>
         </div>
@@ -452,7 +532,7 @@ export default function BushidoDuelGame() {
         }}>
           <div style={{ fontWeight: 'bold', color: '#fff', textShadow: '1px 1px 4px #000', marginBottom: 2 }}>{enemy.name}</div>
           <div style={{ width: 200, height: 18, background: '#222', borderRadius: 10, marginBottom: 2, float: 'right' }}>
-            <div style={{ width: `${(enemy.hp / 10) * 100}%`, height: '100%', background: '#3498db', borderRadius: 10, transition: 'width 0.3s' }} />
+            <div style={{ width: `${(enemy.hp / 10) * 100}%`, height: '100%', background: clan === 'fire' ? '#3498db' : '#e74c3c', borderRadius: 10, transition: 'width 0.3s' }} />
           </div>
           <div style={{ fontSize: 13, color: '#fff', textShadow: '1px 1px 2px #000' }}>{enemy.hp}/10</div>
         </div>

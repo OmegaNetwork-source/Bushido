@@ -117,7 +117,7 @@ export default function App() {
   return (
     <div className="container">
       <header>
-        <h1>Bushido Arcade</h1>
+        <h1>Bushido Battle</h1>
         <ConnectButton />
       </header>
       <nav
@@ -129,10 +129,10 @@ export default function App() {
         }}
       >
         <button onClick={() => setShowLanding(true)}>
-          🏠 Home
+          Home
         </button>
         <button onClick={() => setMultiplayerMode('lobby')}>
-          🎮 Multiplayer
+          Multiplayer
         </button>
         <button onClick={() => setShowLeaderboard(true)}>
           Leaderboard
