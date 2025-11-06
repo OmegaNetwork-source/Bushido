@@ -92,7 +92,7 @@ export default function Landing({ onEnterGame, onSelectGame }) {
               e.target.style.boxShadow = '0 10px 30px rgba(0,212,255,0.4)';
             }}
           >
-            🎬 Preview
+            NFT Preview
           </button>
           <button 
             onClick={() => onSelectGame('bushido-duel')}
@@ -124,7 +124,7 @@ export default function Landing({ onEnterGame, onSelectGame }) {
               e.target.style.boxShadow = '0 10px 30px rgba(168,85,247,0.4)';
             }}
           >
-            ⚔️ Battle
+            Battle
           </button>
           <button 
             onClick={() => onSelectGame('bushido-platformer')}
@@ -156,7 +156,7 @@ export default function Landing({ onEnterGame, onSelectGame }) {
               e.target.style.boxShadow = '0 10px 30px rgba(102,126,234,0.4)';
             }}
           >
-            🪙 Coin Collector
+            Coin Collector
           </button>
         </div>
       </header>
